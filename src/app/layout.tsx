@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Gatezly Portal - Smart Access & Security System",
-  description: "Enterprise gate management, visitor access control, and intelligent security portal.",
+  title: "Gatezly Portal - Smart Gate & Society Management",
+  description: "Comprehensive gate management, resident directory, visitor passes, and society administration portal.",
 };
 
 export default function RootLayout({
@@ -12,11 +12,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-[#090d16] text-slate-100 antialiased min-h-screen selection:bg-indigo-500 selection:text-white">
+    <html lang="en">
+      <body className="bg-slate-50 text-slate-900 antialiased min-h-screen selection:bg-blue-600 selection:text-white font-sans">
         {children}
       </body>
     </html>
   );
 }
-

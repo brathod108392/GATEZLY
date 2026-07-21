@@ -44,7 +44,7 @@ export default function LoginPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         // Redirect to dashboard if logged in
-        router.push("/");
+        router.push("/dashboard");
       }
     };
     checkSession();
@@ -82,7 +82,7 @@ export default function LoginPage() {
         setMessage({ type: "success", text: "Authenticated successfully! Redirecting to Dashboard..." });
         setTimeout(() => {
           router.push("/dashboard");
-        }, 1000);
+        }, 800);
       }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -157,7 +157,7 @@ export default function LoginPage() {
       if (data.user && !data.session) {
         setMessage({
           type: "success",
-          text: `Account created for ${cleanName} (${role.toUpperCase()})! Check your email to confirm your registration.`,
+          text: `Account created for ${cleanName} (${role.toUpperCase()})! Check your email to confirm registration or sign in.`,
         });
       } else if (data.session) {
         setMessage({
@@ -166,7 +166,7 @@ export default function LoginPage() {
         });
         setTimeout(() => {
           router.push("/dashboard");
-        }, 1000);
+        }, 800);
       }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "Failed to create account.";
@@ -183,7 +183,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
         redirectTo: `${window.location.origin}/login?reset=true`,
       });
 
@@ -204,43 +204,40 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-indigo-500 selection:text-white">
-      {/* Ambient glowing background effects */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-indigo-600/15 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 right-10 w-[450px] h-[450px] bg-purple-600/15 rounded-full blur-[130px] pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-blue-600 selection:text-white">
+      {/* Ambient background glows */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-500/10 rounded-full blur-[130px] pointer-events-none" />
 
       {/* Main Container */}
       <div className="w-full max-w-md relative z-10 space-y-6">
         {/* Header Branding */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-cyan-400 p-[1px] shadow-xl shadow-indigo-500/25 mb-2">
-            <div className="h-full w-full bg-[#0d1322] rounded-[15px] flex items-center justify-center">
-              <ShieldCheck className="h-7 w-7 text-indigo-400" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-white">
+          <Link href="/" className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-blue-500 shadow-xl shadow-blue-600/25 mb-2">
+            <ShieldCheck className="h-7 w-7 text-white" />
+          </Link>
+          <h1 className="text-2xl font-black tracking-tight text-slate-900">
             GATEZLY PORTAL
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs font-semibold text-slate-500">
             Smart Access & Security Intelligence Command
           </p>
         </div>
 
-        {/* Card Panel */}
-        <div className="glass-panel-glow rounded-2xl p-7 relative shadow-2xl space-y-6">
+        {/* Blue & White Card Panel */}
+        <div className="bg-white rounded-3xl p-7 border border-slate-200 shadow-xl space-y-6">
           {/* Top Mode Toggle (Login vs Sign Up) */}
           {mode !== "forgot" ? (
-            <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
+            <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 border border-slate-200 text-xs">
               <button
                 type="button"
                 onClick={() => {
                   setMode("login");
                   setMessage(null);
                 }}
-                className={`py-2 rounded-lg font-semibold transition cursor-pointer ${
+                className={`py-2 rounded-lg font-bold transition cursor-pointer ${
                   mode === "login"
-                    ? "bg-indigo-600 text-white shadow-md"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 Sign In
@@ -251,29 +248,29 @@ export default function LoginPage() {
                   setMode("signup");
                   setMessage(null);
                 }}
-                className={`py-2 rounded-lg font-semibold transition cursor-pointer ${
+                className={`py-2 rounded-lg font-bold transition cursor-pointer ${
                   mode === "signup"
-                    ? "bg-indigo-600 text-white shadow-md"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 Create Account
               </button>
             </div>
           ) : (
-            <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
+            <div className="flex items-center space-x-2 border-b border-slate-100 pb-3">
               <button
                 type="button"
                 onClick={() => {
                   setMode("login");
                   setMessage(null);
                 }}
-                className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition cursor-pointer"
+                className="p-1 rounded-lg bg-slate-100 text-slate-600 hover:text-slate-900 transition cursor-pointer"
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
-              <h2 className="text-sm font-bold text-white flex items-center space-x-2">
-                <KeyRound className="h-4 w-4 text-indigo-400" />
+              <h2 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                <KeyRound className="h-4 w-4 text-blue-600" />
                 <span>Reset Password</span>
               </h2>
             </div>
@@ -284,16 +281,16 @@ export default function LoginPage() {
             <div
               className={`p-3.5 rounded-xl text-xs flex items-start space-x-2.5 border ${
                 message.type === "success"
-                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                  : "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                  : "bg-rose-50 border-rose-200 text-rose-800"
               }`}
             >
               {message.type === "success" ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
               ) : (
-                <AlertCircle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
+                <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
               )}
-              <span className="leading-relaxed">{message.text}</span>
+              <span className="leading-relaxed font-medium">{message.text}</span>
             </div>
           )}
 
@@ -301,7 +298,7 @@ export default function LoginPage() {
           {mode === "login" && (
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Email Address
                 </label>
                 <div className="relative">
@@ -312,14 +309,14 @@ export default function LoginPage() {
                     placeholder="officer@gatezly.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-medium text-slate-300">
+                  <label className="block text-xs font-bold text-slate-700">
                     Password
                   </label>
                   <button
@@ -328,7 +325,7 @@ export default function LoginPage() {
                       setMode("forgot");
                       setMessage(null);
                     }}
-                    className="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium transition cursor-pointer"
+                    className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold transition cursor-pointer"
                   >
                     Forgot password?
                   </button>
@@ -341,12 +338,12 @@ export default function LoginPage() {
                     placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+                    className="w-full pl-10 pr-10 py-2.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -356,7 +353,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-95 text-white font-semibold text-xs shadow-lg shadow-indigo-500/25 flex items-center justify-center space-x-2 transition cursor-pointer disabled:opacity-50"
+                className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/25 flex items-center justify-center space-x-2 transition cursor-pointer disabled:opacity-50"
               >
                 {loading ? (
                   <>
@@ -377,7 +374,7 @@ export default function LoginPage() {
           {mode === "signup" && (
             <form onSubmit={handleSignUp} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Full Name
                 </label>
                 <input
@@ -386,12 +383,12 @@ export default function LoginPage() {
                   placeholder="Officer Alex Rivera"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Email Address
                 </label>
                 <div className="relative">
@@ -402,13 +399,13 @@ export default function LoginPage() {
                     placeholder="officer@gatezly.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Password
                 </label>
                 <div className="relative">
@@ -420,12 +417,12 @@ export default function LoginPage() {
                     placeholder="Min 6 characters"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+                    className="w-full pl-10 pr-10 py-2.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -434,7 +431,7 @@ export default function LoginPage() {
 
               {/* ROLE SELECTION CARDS */}
               <div className="space-y-2 pt-1">
-                <label className="block text-xs font-medium text-slate-300">
+                <label className="block text-xs font-bold text-slate-700">
                   Select System Role
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -443,20 +440,20 @@ export default function LoginPage() {
                     onClick={() => setRole("committee")}
                     className={`p-3 rounded-xl border transition cursor-pointer flex flex-col justify-between space-y-2 relative ${
                       role === "committee"
-                        ? "bg-indigo-600/15 border-indigo-500 text-white shadow-md shadow-indigo-500/10"
-                        : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                        ? "bg-blue-50 border-blue-600 text-slate-900 shadow-sm"
+                        : "bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300"
                     }`}
                   >
                     {role === "committee" && (
-                      <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-indigo-500 flex items-center justify-center text-white">
+                      <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-blue-600 flex items-center justify-center text-white">
                         <Check className="h-2.5 w-2.5" />
                       </div>
                     )}
                     <div className="flex items-center space-x-2">
-                      <Users className={`h-4 w-4 ${role === "committee" ? "text-indigo-400" : "text-slate-500"}`} />
-                      <span className="font-bold text-xs">Committee</span>
+                      <Users className={`h-4 w-4 ${role === "committee" ? "text-blue-600" : "text-slate-400"}`} />
+                      <span className="font-extrabold text-xs">Committee</span>
                     </div>
-                    <p className="text-[10px] text-slate-400 leading-tight">
+                    <p className="text-[10px] text-slate-500 leading-tight">
                       Issue passes, verify guests, view entry logs.
                     </p>
                   </div>
@@ -466,20 +463,20 @@ export default function LoginPage() {
                     onClick={() => setRole("admin")}
                     className={`p-3 rounded-xl border transition cursor-pointer flex flex-col justify-between space-y-2 relative ${
                       role === "admin"
-                        ? "bg-purple-600/15 border-purple-500 text-white shadow-md shadow-purple-500/10"
-                        : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                        ? "bg-indigo-50 border-indigo-600 text-slate-900 shadow-sm"
+                        : "bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300"
                     }`}
                   >
                     {role === "admin" && (
-                      <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-purple-500 flex items-center justify-center text-white">
+                      <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-indigo-600 flex items-center justify-center text-white">
                         <Check className="h-2.5 w-2.5" />
                       </div>
                     )}
                     <div className="flex items-center space-x-2">
-                      <ShieldAlert className={`h-4 w-4 ${role === "admin" ? "text-purple-400" : "text-slate-500"}`} />
-                      <span className="font-bold text-xs">Admin</span>
+                      <ShieldAlert className={`h-4 w-4 ${role === "admin" ? "text-indigo-600" : "text-slate-400"}`} />
+                      <span className="font-extrabold text-xs">Admin</span>
                     </div>
-                    <p className="text-[10px] text-slate-400 leading-tight">
+                    <p className="text-[10px] text-slate-500 leading-tight">
                       Full checkpoint rules, alerts, and user profiles.
                     </p>
                   </div>
@@ -489,7 +486,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2 transition cursor-pointer disabled:opacity-50 mt-2"
+                className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/25 flex items-center justify-center space-x-2 transition cursor-pointer disabled:opacity-50 mt-2"
               >
                 {loading ? (
                   <>
@@ -509,12 +506,12 @@ export default function LoginPage() {
           {/* FORGOT PASSWORD FORM */}
           {mode === "forgot" && (
             <form onSubmit={handleForgotPassword} className="space-y-4">
-              <p className="text-xs text-slate-300 leading-relaxed">
+              <p className="text-xs text-slate-600 leading-relaxed">
                 Enter your registered email address and we will send you a secure link to reset your password.
               </p>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Email Address
                 </label>
                 <div className="relative">
@@ -525,7 +522,7 @@ export default function LoginPage() {
                     placeholder="officer@gatezly.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
                   />
                 </div>
               </div>
@@ -533,7 +530,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2 transition cursor-pointer disabled:opacity-50"
+                className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/25 flex items-center justify-center space-x-2 transition cursor-pointer disabled:opacity-50"
               >
                 {loading ? (
                   <>
@@ -555,7 +552,7 @@ export default function LoginPage() {
                     setMode("login");
                     setMessage(null);
                   }}
-                  className="text-xs text-slate-400 hover:text-white transition cursor-pointer"
+                  className="text-xs text-slate-500 hover:text-slate-800 transition cursor-pointer font-semibold"
                 >
                   Back to Sign In
                 </button>
@@ -566,8 +563,8 @@ export default function LoginPage() {
 
         {/* Footer Link back to Home */}
         <div className="text-center text-xs text-slate-500">
-          <Link href="/" className="hover:text-slate-300 transition">
-            &larr; Return to Gatezly Dashboard
+          <Link href="/" className="hover:text-blue-600 font-semibold transition">
+            &larr; Return to Gatezly Portal Landing Page
           </Link>
         </div>
       </div>
