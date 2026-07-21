@@ -15,7 +15,10 @@ import {
   AlertCircle,
   KeyRound,
   ArrowLeft,
-  Loader2
+  Loader2,
+  ShieldAlert,
+  Users,
+  Check
 } from "lucide-react";
 
 export default function LoginPage() {
@@ -28,6 +31,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState<"admin" | "committee">("committee");
   const [showPassword, setShowPassword] = useState(false);
 
   // States
@@ -74,32 +78,61 @@ export default function LoginPage() {
     }
   };
 
-  // Handle Sign Up
+  // Handle Sign Up & Profile Creation
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
     setLoading(true);
 
     try {
+      // 1. Register Auth user with role in metadata
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName,
+            role: role,
           },
         },
       });
 
       if (error) {
         setMessage({ type: "error", text: error.message });
-      } else if (data.user && !data.session) {
+        setLoading(false);
+        return;
+      }
+
+      // 2. If user object returned, insert/upsert into 'profiles' table
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .upsert(
+            {
+              id: data.user.id,
+              email: data.user.email || email,
+              full_name: fullName,
+              role: role,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "id" }
+          );
+
+        if (profileError) {
+          console.warn("Profiles table insertion notice:", profileError.message);
+        }
+      }
+
+      if (data.user && !data.session) {
         setMessage({
           type: "success",
-          text: "Registration successful! Please check your email to confirm your account.",
+          text: `Account created for ${fullName} with ${role.toUpperCase()} role! Please check your email to confirm registration.`,
         });
       } else if (data.session) {
-        setMessage({ type: "success", text: "Account created and logged in! Redirecting..." });
+        setMessage({
+          type: "success",
+          text: `Account & ${role.toUpperCase()} profile created! Redirecting...`,
+        });
         setTimeout(() => {
           router.push("/");
         }, 1200);
@@ -164,7 +197,7 @@ export default function LoginPage() {
 
         {/* Card Panel */}
         <div className="glass-panel-glow rounded-2xl p-7 relative shadow-2xl space-y-6">
-          {/* Top Mode Toggle (Login vs Sign Up) - shown when not in 'forgot' mode */}
+          {/* Top Mode Toggle (Login vs Sign Up) */}
           {mode !== "forgot" ? (
             <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
               <button
@@ -204,7 +237,7 @@ export default function LoginPage() {
                   setMode("login");
                   setMessage(null);
                 }}
-                className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition"
+                className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition cursor-pointer"
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
@@ -264,7 +297,7 @@ export default function LoginPage() {
                       setMode("forgot");
                       setMessage(null);
                     }}
-                    className="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium transition"
+                    className="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium transition cursor-pointer"
                   >
                     Forgot password?
                   </button>
@@ -282,7 +315,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -309,7 +342,7 @@ export default function LoginPage() {
             </form>
           )}
 
-          {/* SIGN UP FORM */}
+          {/* SIGN UP FORM WITH ROLE SELECTION */}
           {mode === "signup" && (
             <form onSubmit={handleSignUp} className="space-y-4">
               <div>
@@ -361,26 +394,80 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
 
+              {/* ROLE SELECTION CARDS */}
+              <div className="space-y-2 pt-1">
+                <label className="block text-xs font-medium text-slate-300">
+                  Select System Role
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Committee Role Card */}
+                  <div
+                    onClick={() => setRole("committee")}
+                    className={`p-3 rounded-xl border transition cursor-pointer flex flex-col justify-between space-y-2 relative ${
+                      role === "committee"
+                        ? "bg-indigo-600/15 border-indigo-500 text-white shadow-md shadow-indigo-500/10"
+                        : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                    }`}
+                  >
+                    {role === "committee" && (
+                      <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-indigo-500 flex items-center justify-center text-white">
+                        <Check className="h-2.5 w-2.5" />
+                      </div>
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <Users className={`h-4 w-4 ${role === "committee" ? "text-indigo-400" : "text-slate-500"}`} />
+                      <span className="font-bold text-xs">Committee</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-tight">
+                      Issue passes, verify guests, view entry logs.
+                    </p>
+                  </div>
+
+                  {/* Admin Role Card */}
+                  <div
+                    onClick={() => setRole("admin")}
+                    className={`p-3 rounded-xl border transition cursor-pointer flex flex-col justify-between space-y-2 relative ${
+                      role === "admin"
+                        ? "bg-purple-600/15 border-purple-500 text-white shadow-md shadow-purple-500/10"
+                        : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                    }`}
+                  >
+                    {role === "admin" && (
+                      <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-purple-500 flex items-center justify-center text-white">
+                        <Check className="h-2.5 w-2.5" />
+                      </div>
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <ShieldAlert className={`h-4 w-4 ${role === "admin" ? "text-purple-400" : "text-slate-500"}`} />
+                      <span className="font-bold text-xs">Admin</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-tight">
+                      Full checkpoint rules, alerts, and user profiles.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2 transition cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2 transition cursor-pointer disabled:opacity-50 mt-2"
               >
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Creating Account...</span>
+                    <span>Creating Profile...</span>
                   </>
                 ) : (
                   <>
-                    <span>Create Portal Account</span>
+                    <span>Create {role === "admin" ? "Admin" : "Committee"} Account</span>
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
@@ -437,7 +524,7 @@ export default function LoginPage() {
                     setMode("login");
                     setMessage(null);
                   }}
-                  className="text-xs text-slate-400 hover:text-white transition"
+                  className="text-xs text-slate-400 hover:text-white transition cursor-pointer"
                 >
                   Back to Sign In
                 </button>
