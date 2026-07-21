@@ -66,8 +66,9 @@ export default function LoginPage() {
           router.push("/");
         }, 1200);
       }
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message || "An unexpected error occurred." });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "An unexpected error occurred.";
+      setMessage({ type: "error", text: errorMsg });
     } finally {
       setLoading(false);
     }
@@ -103,8 +104,9 @@ export default function LoginPage() {
           router.push("/");
         }, 1200);
       }
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message || "Failed to create account." });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to create account.";
+      setMessage({ type: "error", text: errorMsg });
     } finally {
       setLoading(false);
     }
@@ -129,8 +131,9 @@ export default function LoginPage() {
           text: "Password reset instructions have been sent to your email address.",
         });
       }
-    } catch (err: any) {
-      setMessage({ type: "error", text: err.message || "Failed to send reset email." });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to send reset email.";
+      setMessage({ type: "error", text: errorMsg });
     } finally {
       setLoading(false);
     }
