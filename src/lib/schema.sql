@@ -3,7 +3,8 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   full_name text,
-  role text check (role in ('admin', 'committee')) default 'committee',
+  phone text,
+  role text check (role in ('admin', 'committee', 'resident')) default 'resident',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -40,12 +41,13 @@ create policy "Users can update own profile"
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, email, full_name, role, created_at, updated_at)
+  insert into public.profiles (id, email, full_name, phone, role, created_at, updated_at)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', 'User'),
-    coalesce(new.raw_user_meta_data->>'role', 'committee'),
+    new.raw_user_meta_data->>'phone',
+    coalesce(new.raw_user_meta_data->>'role', 'resident'),
     now(),
     now()
   )
@@ -53,6 +55,7 @@ begin
   set
     email = excluded.email,
     full_name = excluded.full_name,
+    phone = excluded.phone,
     role = excluded.role,
     updated_at = now();
   return new;
