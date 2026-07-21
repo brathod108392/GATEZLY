@@ -2,27 +2,20 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import {
   ShieldCheck,
   Users,
-  Building2,
   QrCode,
   Bell,
   Search,
   Clock,
-  UserPlus,
-  Car,
   AlertTriangle,
   ChevronRight,
   TrendingUp,
   Lock,
-  Activity,
-  LogOut,
-  ShieldAlert,
-  UserCheck
+  LogOut
 } from "lucide-react";
 
 interface VisitorLog {
