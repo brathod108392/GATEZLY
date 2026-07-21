@@ -67,3 +67,46 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Create Towers Table
+create table if not exists public.towers (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Create Flats Table
+create table if not exists public.flats (
+  id uuid primary key default gen_random_uuid(),
+  tower_id uuid references public.towers(id) on delete cascade not null,
+  number text not null,
+  floor integer,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(tower_id, number)
+);
+
+-- Create Flat Residents mapping table
+create table if not exists public.flat_residents (
+  id uuid primary key default gen_random_uuid(),
+  flat_id uuid references public.flats(id) on delete cascade not null,
+  resident_id uuid references public.profiles(id) on delete cascade not null,
+  is_owner boolean default false,
+  move_in_date date,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(flat_id, resident_id)
+);
+
+-- Enable RLS for Flats module
+alter table public.towers enable row level security;
+alter table public.flats enable row level security;
+alter table public.flat_residents enable row level security;
+
+-- Create RLS Policies for Flats module (Committee & Admin have full access, residents have read-only for their own data)
+create policy "Authenticated users can view towers" on public.towers for select to authenticated using (true);
+create policy "Admins and committee can manage towers" on public.towers for all to authenticated using (public.get_user_role() in ('admin', 'committee'));
+
+create policy "Authenticated users can view flats" on public.flats for select to authenticated using (true);
+create policy "Admins and committee can manage flats" on public.flats for all to authenticated using (public.get_user_role() in ('admin', 'committee'));
+
+create policy "Authenticated users can view flat residents" on public.flat_residents for select to authenticated using (true);
+create policy "Admins and committee can manage flat residents" on public.flat_residents for all to authenticated using (public.get_user_role() in ('admin', 'committee'));
