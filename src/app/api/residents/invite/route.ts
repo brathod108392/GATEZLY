@@ -23,10 +23,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const requestUrl = new URL(request.url);
+    const redirectTo = `${requestUrl.origin}/update-password`;
+
     // Use admin.inviteUserByEmail to send invite link and create user
     const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       email,
       {
+        redirectTo,
         data: {
           full_name: name,
           phone: phone || null,

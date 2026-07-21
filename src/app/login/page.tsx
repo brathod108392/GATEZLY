@@ -24,8 +24,8 @@ import {
 export default function LoginPage() {
   const router = useRouter();
 
-  // Mode: "login" | "signup" | "forgot"
-  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
+  // Mode: "login" | "signup" | "forgot" | "magic"
+  const [mode, setMode] = useState<"login" | "signup" | "forgot" | "magic">("login");
 
   // Form fields
   const [email, setEmail] = useState("");
@@ -203,6 +203,36 @@ export default function LoginPage() {
     }
   };
 
+  // Handle Magic Link (OTP)
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage(null);
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        }
+      });
+
+      if (error) {
+        setMessage({ type: "error", text: error.message });
+      } else {
+        setMessage({
+          type: "success",
+          text: "Magic Link sent! Please check your email to securely sign in.",
+        });
+      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to send Magic Link.";
+      setMessage({ type: "error", text: errorMsg });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-blue-600 selection:text-white">
       {/* Ambient background glows */}
@@ -226,7 +256,7 @@ export default function LoginPage() {
         {/* Blue & White Card Panel */}
         <div className="bg-white rounded-3xl p-7 border border-slate-200 shadow-xl space-y-6">
           {/* Top Mode Toggle (Login vs Sign Up) */}
-          {mode !== "forgot" ? (
+          {(mode === "login" || mode === "signup") ? (
             <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 border border-slate-200 text-xs">
               <button
                 type="button"
@@ -271,7 +301,7 @@ export default function LoginPage() {
               </button>
               <h2 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
                 <KeyRound className="h-4 w-4 text-blue-600" />
-                <span>Reset Password</span>
+                <span>{mode === "forgot" ? "Reset Password" : "Sign In with Magic Link"}</span>
               </h2>
             </div>
           )}
@@ -367,6 +397,21 @@ export default function LoginPage() {
                   </>
                 )}
               </button>
+
+              <div className="pt-4 text-center border-t border-slate-100 mt-4">
+                <p className="text-xs text-slate-500 mb-2">Or sign in without a password</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("magic");
+                    setMessage(null);
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-sm flex items-center justify-center space-x-2 transition cursor-pointer"
+                >
+                  <Mail className="h-4 w-4 text-blue-600" />
+                  <span>Send Magic Link</span>
+                </button>
+              </div>
             </form>
           )}
 
@@ -557,6 +602,50 @@ export default function LoginPage() {
                   Back to Sign In
                 </button>
               </div>
+            </form>
+          )}
+
+          {/* MAGIC LINK FORM */}
+          {mode === "magic" && (
+            <form onSubmit={handleMagicLink} className="space-y-4">
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Enter your email address to receive a secure, passwordless login link.
+              </p>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="officer@gatezly.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/25 flex items-center justify-center space-x-2 transition cursor-pointer disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Sending Magic Link...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Send Magic Link</span>
+                    <Mail className="h-4 w-4" />
+                  </>
+                )}
+              </button>
             </form>
           )}
         </div>
