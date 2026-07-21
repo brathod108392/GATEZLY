@@ -17,10 +17,8 @@ import {
   Sparkles,
   Lock,
   ChevronRight,
-  Activity,
   LogIn,
-  LayoutDashboard,
-  CheckCircle2
+  LayoutDashboard
 } from "lucide-react";
 
 export default function LandingPage() {
