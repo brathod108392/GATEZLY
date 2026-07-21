@@ -20,6 +20,8 @@ export default function ResidentsPage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState("");
   const [inviteSuccess, setInviteSuccess] = useState("");
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -28,8 +30,20 @@ export default function ResidentsPage() {
   });
 
   useEffect(() => {
+    fetchCurrentUserRole();
     fetchResidents();
   }, []);
+
+  const fetchCurrentUserRole = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+      if (data) {
+        setCurrentUserRole(data.role);
+      }
+    }
+    setRoleLoading(false);
+  };
 
   const fetchResidents = async () => {
     setLoading(true);
@@ -58,9 +72,14 @@ export default function ResidentsPage() {
     setInviteSuccess("");
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+
       const res = await fetch("/api/residents/invite", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`
+        },
         body: JSON.stringify(formData),
       });
 
@@ -90,6 +109,28 @@ export default function ResidentsPage() {
       setInviteLoading(false);
     }
   };
+
+  if (roleLoading) {
+    return (
+      <div className="flex justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
+  if (currentUserRole === "resident") {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
+        <div className="mx-auto h-16 w-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
+          <Users className="h-8 w-8" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 mb-2">Access Denied</h2>
+        <p className="text-slate-500 text-sm max-w-sm mx-auto">
+          The resident directory is only accessible to Committee members and Administrators.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

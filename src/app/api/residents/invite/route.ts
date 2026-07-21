@@ -23,6 +23,23 @@ export async function POST(request: Request) {
       );
     }
 
+    // Verify caller role
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
+    }
+
+    const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+    if (!profile || profile.role === 'resident') {
+      return NextResponse.json({ error: 'Forbidden: Only Admins or Committee members can invite residents.' }, { status: 403 });
+    }
+
     const requestUrl = new URL(request.url);
     const redirectTo = `${requestUrl.origin}/update-password`;
 
