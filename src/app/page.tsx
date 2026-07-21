@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   ShieldCheck,
   Users,
@@ -143,8 +144,14 @@ export default function GatezlyPortal() {
               <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-indigo-500 ring-2 ring-[#090d16]" />
             </button>
 
-            {/* Profile Avatar */}
+            {/* Profile Avatar & Sign In */}
             <div className="flex items-center space-x-3 pl-2 border-l border-slate-800">
+              <Link
+                href="/login"
+                className="px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 text-xs font-semibold transition"
+              >
+                Sign In
+              </Link>
               <div className="h-9 w-9 rounded-full bg-indigo-600/30 border border-indigo-400/30 flex items-center justify-center font-bold text-sm text-indigo-300">
                 SC
               </div>
