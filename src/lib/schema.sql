@@ -11,18 +11,27 @@ create table if not exists public.profiles (
 -- Enable Row Level Security (RLS)
 alter table public.profiles enable row level security;
 
--- Create RLS Policies
-create policy "Public profiles are viewable by authenticated users"
+-- Drop any conflicting/recursive legacy policies
+drop policy if exists "Public profiles are viewable by authenticated users" on public.profiles;
+drop policy if exists "Users can insert their own profile" on public.profiles;
+drop policy if exists "Users can update their own profile" on public.profiles;
+drop policy if exists "Enable read access for authenticated users" on public.profiles;
+
+-- Create Non-Recursive RLS Policies
+-- 1. Read Policy: Allow authenticated users to view profiles without self-referential queries
+create policy "Authenticated users can view profiles"
   on public.profiles for select
   to authenticated
   using (true);
 
-create policy "Users can insert their own profile"
+-- 2. Insert Policy: Allow users to insert their own profile upon signup
+create policy "Users can insert own profile"
   on public.profiles for insert
   to authenticated, anon
   with check (true);
 
-create policy "Users can update their own profile"
+-- 3. Update Policy: Allow users to update only their own profile matching auth.uid()
+create policy "Users can update own profile"
   on public.profiles for update
   to authenticated
   using (auth.uid() = id);
