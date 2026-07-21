@@ -11,6 +11,13 @@ interface Resident {
   phone: string | null;
   role: string;
   created_at: string;
+  flat_residents?: {
+    is_owner: boolean;
+    flats?: {
+      number: string;
+      towers?: { name: string };
+    };
+  }[];
 }
 
 export default function ResidentsPage() {
@@ -22,6 +29,7 @@ export default function ResidentsPage() {
   const [inviteSuccess, setInviteSuccess] = useState("");
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -49,17 +57,41 @@ export default function ResidentsPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("profiles")
-      .select("*")
+      .select(`
+        *,
+        flat_residents (
+          is_owner,
+          flats (
+            number,
+            towers ( name )
+          )
+        )
+      `)
       .eq("role", "resident")
       .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching residents:", error);
     } else {
-      setResidents(data || []);
+      setResidents((data as unknown as Resident[]) || []);
     }
     setLoading(false);
   };
+
+  const filteredResidents = residents.filter(r => {
+    if (!searchQuery) return true;
+    const search = searchQuery.toLowerCase();
+    const nameMatch = r.full_name?.toLowerCase().includes(search);
+    const emailMatch = r.email?.toLowerCase().includes(search);
+    const phoneMatch = r.phone?.toLowerCase().includes(search);
+    
+    const flatMatch = r.flat_residents?.some(fr => 
+      fr.flats?.number?.toLowerCase().includes(search) ||
+      fr.flats?.towers?.name?.toLowerCase().includes(search)
+    );
+    
+    return nameMatch || emailMatch || phoneMatch || flatMatch;
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -161,7 +193,9 @@ export default function ResidentsPage() {
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Search residents..." 
+              placeholder="Search residents, flats..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-64 bg-white"
             />
           </div>
@@ -173,6 +207,7 @@ export default function ResidentsPage() {
               <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
                 <th className="px-6 py-4 font-medium">Name</th>
                 <th className="px-6 py-4 font-medium">Contact</th>
+                <th className="px-6 py-4 font-medium">Flat / Tower</th>
                 <th className="px-6 py-4 font-medium">Role</th>
                 <th className="px-6 py-4 font-medium">Added On</th>
               </tr>
@@ -180,23 +215,23 @@ export default function ResidentsPage() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-500" />
                     <p className="text-sm">Loading directory...</p>
                   </td>
                 </tr>
-              ) : residents.length === 0 ? (
+              ) : filteredResidents.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
                     <div className="h-12 w-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mx-auto mb-3">
                       <Users className="h-6 w-6" />
                     </div>
                     <p className="text-sm font-medium text-slate-700">No residents found</p>
-                    <p className="text-xs mt-1">Click &apos;Add Resident&apos; to invite someone.</p>
+                    <p className="text-xs mt-1">Try adjusting your search or add a new resident.</p>
                   </td>
                 </tr>
               ) : (
-                residents.map((resident) => (
+                filteredResidents.map((resident) => (
                   <tr key={resident.id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="font-medium text-slate-900">{resident.full_name || "N/A"}</div>
@@ -204,6 +239,21 @@ export default function ResidentsPage() {
                     <td className="px-6 py-4">
                       <div className="text-sm text-slate-600">{resident.email}</div>
                       {resident.phone && <div className="text-xs text-slate-400 mt-0.5">{resident.phone}</div>}
+                    </td>
+                    <td className="px-6 py-4">
+                      {resident.flat_residents && resident.flat_residents.length > 0 ? (
+                        <div className="space-y-1">
+                          {resident.flat_residents.map((fr, idx) => (
+                            <div key={idx} className="flex items-center space-x-1">
+                              <span className="text-sm font-bold text-slate-800">{fr.flats?.number}</span>
+                              <span className="text-xs text-slate-500">({fr.flats?.towers?.name})</span>
+                              {fr.is_owner && <span className="ml-1 text-[9px] font-bold bg-amber-100 text-amber-700 px-1 py-0.5 rounded">OWNER</span>}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">Unassigned</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
