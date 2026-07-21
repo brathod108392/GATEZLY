@@ -116,7 +116,19 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setMessage({ type: "error", text: error.message });
+        if (error.message.toLowerCase().includes("rate limit")) {
+          setMessage({
+            type: "error",
+            text: "Supabase Email Rate Limit Exceeded: Supabase caps confirmation emails to 3-4 per hour on default SMTP. QUICK FIX: Go to your Supabase Dashboard -> Authentication -> Providers -> Email, and toggle OFF 'Confirm email' to allow instant testing without email limits!",
+          });
+        } else if (error.message.toLowerCase().includes("already registered") || error.message.toLowerCase().includes("user already exists")) {
+          setMessage({
+            type: "error",
+            text: "This email is already registered. Please switch to 'Sign In' above.",
+          });
+        } else {
+          setMessage({ type: "error", text: error.message });
+        }
         setLoading(false);
         return;
       }
