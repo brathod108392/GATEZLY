@@ -36,19 +36,22 @@ create policy "Users can update own profile"
   to authenticated
   using (auth.uid() = id);
 
--- Automatic handle_new_user trigger (optional backup)
+-- Automatic handle_new_user trigger (optional database-level backup)
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, email, full_name, role)
+  insert into public.profiles (id, email, full_name, role, created_at, updated_at)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', 'User'),
-    coalesce(new.raw_user_meta_data->>'role', 'committee')
+    coalesce(new.raw_user_meta_data->>'role', 'committee'),
+    now(),
+    now()
   )
   on conflict (id) do update
   set
+    email = excluded.email,
     full_name = excluded.full_name,
     role = excluded.role,
     updated_at = now();

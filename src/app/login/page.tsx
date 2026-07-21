@@ -58,17 +58,31 @@ export default function LoginPage() {
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim().toLowerCase(),
         password,
       });
 
       if (error) {
         setMessage({ type: "error", text: error.message });
-      } else if (data.session) {
-        setMessage({ type: "success", text: "Authenticated successfully! Redirecting..." });
+      } else if (data.session && data.user) {
+        // Ensure email & updated_at are set in profiles table on login
+        const now = new Date().toISOString();
+        const userEmail = (data.user.email || email).trim().toLowerCase();
+        await supabase.from("profiles").upsert(
+          {
+            id: data.user.id,
+            email: userEmail,
+            full_name: data.user.user_metadata?.full_name || fullName || "User",
+            role: data.user.user_metadata?.role || "committee",
+            updated_at: now,
+          },
+          { onConflict: "id" }
+        );
+
+        setMessage({ type: "success", text: "Authenticated successfully! Redirecting to Dashboard..." });
         setTimeout(() => {
-          router.push("/");
-        }, 1200);
+          router.push("/dashboard");
+        }, 1000);
       }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -85,13 +99,17 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanName = fullName.trim();
+      const now = new Date().toISOString();
+
       // 1. Register Auth user with role in metadata
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: cleanEmail,
         password,
         options: {
           data: {
-            full_name: fullName,
+            full_name: cleanName,
             role: role,
           },
         },
@@ -103,39 +121,40 @@ export default function LoginPage() {
         return;
       }
 
-      // 2. If user object returned, insert/upsert into 'profiles' table
+      // 2. Insert/Upsert into 'profiles' table with guaranteed email and updated_at
       if (data.user) {
         const { error: profileError } = await supabase
           .from("profiles")
           .upsert(
             {
               id: data.user.id,
-              email: data.user.email || email,
-              full_name: fullName,
+              email: cleanEmail,
+              full_name: cleanName,
               role: role,
-              updated_at: new Date().toISOString(),
+              created_at: now,
+              updated_at: now,
             },
             { onConflict: "id" }
           );
 
         if (profileError) {
-          console.warn("Profiles table insertion notice:", profileError.message);
+          console.error("Profiles table upsert error:", profileError.message);
         }
       }
 
       if (data.user && !data.session) {
         setMessage({
           type: "success",
-          text: `Account created for ${fullName} with ${role.toUpperCase()} role! Please check your email to confirm registration.`,
+          text: `Account created for ${cleanName} (${role.toUpperCase()})! Check your email to confirm your registration.`,
         });
       } else if (data.session) {
         setMessage({
           type: "success",
-          text: `Account & ${role.toUpperCase()} profile created! Redirecting...`,
+          text: `Account & ${role.toUpperCase()} profile created! Redirecting to Dashboard...`,
         });
         setTimeout(() => {
-          router.push("/");
-        }, 1200);
+          router.push("/dashboard");
+        }, 1000);
       }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "Failed to create account.";
