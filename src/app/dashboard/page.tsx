@@ -34,7 +34,7 @@ export default function DashboardOverviewPage() {
         setProfile({
           full_name: data?.full_name || session.user.user_metadata?.full_name || "Authorized User",
           email: data?.email || session.user.email || "",
-          role: data?.role || session.user.user_metadata?.role || "committee",
+          role: data?.role || session.user.user_metadata?.role || "resident",
         });
       }
     };
@@ -82,7 +82,7 @@ export default function DashboardOverviewPage() {
               </div>
               <div>
                 <div className="text-xs font-bold text-white uppercase tracking-wider">
-                  {profile?.role === "admin" ? "System Administrator" : "Committee Member"}
+                  {profile?.role === "admin" ? "System Administrator" : profile?.role === "committee" ? "Committee Member" : "Resident"}
                 </div>
                 <div className="text-[11px] text-blue-200 truncate max-w-[150px]">
                   {profile?.email}
