@@ -10,7 +10,6 @@ import {
   Wrench,
   Megaphone,
   BarChart3,
-  ShieldCheck,
   ArrowRight,
   Settings,
   Activity,
