@@ -63,6 +63,19 @@ export default function ProtectedDashboardLayout({
           setAuthenticated(false);
           router.push("/login");
         } else {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("is_active")
+            .eq("id", session.user.id)
+            .single();
+
+          if (profile && profile.is_active === false) {
+            await supabase.auth.signOut();
+            setAuthenticated(false);
+            router.push("/login?error=account_deactivated");
+            return;
+          }
+
           setAuthenticated(true);
           setUserEmail(session.user.email || "");
         }
@@ -79,11 +92,24 @@ export default function ProtectedDashboardLayout({
 
     // 2. Auth State Change Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         if (!session) {
           setAuthenticated(false);
           router.push("/login");
         } else {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("is_active")
+            .eq("id", session.user.id)
+            .single();
+
+          if (profile && profile.is_active === false) {
+            await supabase.auth.signOut();
+            setAuthenticated(false);
+            router.push("/login?error=account_deactivated");
+            return;
+          }
+
           setAuthenticated(true);
           setUserEmail(session.user.email || "");
         }
