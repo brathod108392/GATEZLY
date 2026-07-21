@@ -124,16 +124,48 @@ export default function FlatsPage() {
     setActionLoading(false);
   };
 
+  const parseFlatNumbers = (input: string): string[] => {
+    const flats = new Set<string>();
+    const parts = input.split(',').map(p => p.trim()).filter(Boolean);
+    
+    for (const part of parts) {
+      if (part.includes('-')) {
+        const [startStr, endStr] = part.split('-').map(s => s.trim());
+        const start = parseInt(startStr);
+        const end = parseInt(endStr);
+        if (!isNaN(start) && !isNaN(end) && start <= end && (end - start) < 200) {
+          for (let i = start; i <= end; i++) {
+            flats.add(i.toString());
+          }
+        } else {
+          flats.add(part);
+        }
+      } else {
+        flats.add(part);
+      }
+    }
+    return Array.from(flats);
+  };
+
   const handleAddFlat = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionLoading(true);
     setActionError("");
     
-    const { error } = await supabase.from("flats").insert([{ 
-      tower_id: flatData.tower_id, 
-      number: flatData.number, 
-      floor: flatData.floor ? parseInt(flatData.floor) : null 
-    }]);
+    const flatNumbers = parseFlatNumbers(flatData.number);
+    if (flatNumbers.length === 0) {
+      setActionError("Please enter valid flat numbers.");
+      setActionLoading(false);
+      return;
+    }
+
+    const inserts = flatNumbers.map(num => ({
+      tower_id: flatData.tower_id,
+      number: num,
+      floor: flatData.floor ? parseInt(flatData.floor) : null
+    }));
+
+    const { error } = await supabase.from("flats").insert(inserts);
     
     if (error) setActionError(error.message);
     else {
@@ -330,8 +362,9 @@ export default function FlatsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700">Flat Number</label>
-                <input type="text" required value={flatData.number} onChange={e => setFlatData({...flatData, number: e.target.value})} placeholder="e.g. 101" className="w-full mt-1.5 px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500" />
+                <label className="text-sm font-medium text-slate-700">Flat Number(s)</label>
+                <input type="text" required value={flatData.number} onChange={e => setFlatData({...flatData, number: e.target.value})} placeholder="e.g. 101, or 101-105" className="w-full mt-1.5 px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500" />
+                <p className="text-[10px] text-slate-500 mt-1 ml-1">Supports ranges (101-105) and comma separated lists (101, 102).</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700">Floor (Optional)</label>
