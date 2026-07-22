@@ -90,9 +90,11 @@ export default function NoticesPage() {
       setIsModalOpen(false);
       setFormData({ title: "", body: "", is_emergency: false });
       fetchNotices();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Notice Insert Error:", err);
-      setActionError(err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err)));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const e = err as any;
+      setActionError(e.message || (typeof e === 'object' ? JSON.stringify(e) : String(e)));
     } finally {
       setActionLoading(false);
     }
