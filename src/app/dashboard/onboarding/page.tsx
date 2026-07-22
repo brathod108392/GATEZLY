@@ -49,28 +49,13 @@ export default function OnboardingPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // 1. Create the Society
-      const { data: newSociety, error: societyError } = await supabase
-        .from("societies")
-        .insert({
-          name: formData.name,
-          address: formData.address
-        })
-        .select()
-        .single();
+      // Call the database function to create society AND update profile securely
+      const { error: rpcError } = await supabase.rpc("create_society", {
+        society_name: formData.name,
+        society_address: formData.address
+      });
 
-      if (societyError) throw societyError;
-
-      // 2. Update the user's profile to belong to this society and make them an admin
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ 
-          society_id: newSociety.id,
-          role: "admin"
-        })
-        .eq("id", user.id);
-
-      if (profileError) throw profileError;
+      if (rpcError) throw rpcError;
 
       // Refresh page/session and go to dashboard
       window.location.href = "/dashboard";
