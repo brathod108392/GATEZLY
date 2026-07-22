@@ -64,13 +64,14 @@ create policy "Admins can update profiles in their society"
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, email, full_name, phone, role, created_at, updated_at)
+  insert into public.profiles (id, email, full_name, phone, role, society_id, created_at, updated_at)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', 'User'),
     new.raw_user_meta_data->>'phone',
     coalesce(new.raw_user_meta_data->>'role', 'admin'), -- First user without invite defaults to admin for onboarding
+    (new.raw_user_meta_data->>'society_id')::uuid,
     now(),
     now()
   )
@@ -80,6 +81,7 @@ begin
     full_name = excluded.full_name,
     phone = excluded.phone,
     role = excluded.role,
+    society_id = COALESCE(public.profiles.society_id, excluded.society_id),
     updated_at = now();
   return new;
 end;

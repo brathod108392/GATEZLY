@@ -35,9 +35,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
     }
 
-    const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+    const { data: profile } = await supabaseAdmin.from('profiles').select('role, society_id').eq('id', user.id).single();
     if (!profile || profile.role === 'resident') {
       return NextResponse.json({ error: 'Forbidden: Only Admins or Committee members can invite residents.' }, { status: 403 });
+    }
+
+    if (!profile.society_id) {
+      return NextResponse.json({ error: 'Forbidden: Inviter does not belong to a society.' }, { status: 403 });
     }
 
     const requestUrl = new URL(request.url);
@@ -52,6 +56,7 @@ export async function POST(request: Request) {
           full_name: name,
           phone: phone || null,
           role: 'resident',
+          society_id: profile.society_id,
         },
       }
     );
