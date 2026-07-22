@@ -90,8 +90,9 @@ export default function NoticesPage() {
       setIsModalOpen(false);
       setFormData({ title: "", body: "", is_emergency: false });
       fetchNotices();
-    } catch (err: unknown) {
-      setActionError(err instanceof Error ? err.message : String(err));
+    } catch (err: any) {
+      console.error("Notice Insert Error:", err);
+      setActionError(err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err)));
     } finally {
       setActionLoading(false);
     }
