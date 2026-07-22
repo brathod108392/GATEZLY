@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import {
   ShieldCheck,
@@ -24,6 +25,8 @@ import {
 export default function LandingPage() {
   const [sessionUser, setSessionUser] = useState<{ email: string; name: string } | null>(null);
 
+  const router = useRouter();
+
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -33,9 +36,27 @@ export default function LandingPage() {
           name: session.user.user_metadata?.full_name || "Officer",
         });
       }
+
+      // Check for expired reset link error in URL hash
+      if (typeof window !== "undefined" && window.location.hash) {
+        const hash = window.location.hash;
+        if (hash.includes("error_code=otp_expired")) {
+          router.push("/login#error_code=otp_expired");
+        }
+      }
     };
     checkUser();
-  }, []);
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        router.push("/update-password");
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [router]);
 
   const features = [
     { title: "Residents Directory", desc: "Manage resident profiles, owner/tenant records, and family contacts.", icon: Users, href: "/dashboard/residents", color: "bg-blue-600" },

@@ -43,11 +43,38 @@ export default function LoginPage() {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Redirect to dashboard if logged in
-        router.push("/dashboard");
+        // If they just clicked a password reset link, don't redirect to dashboard
+        const hash = window.location.hash;
+        if (!hash.includes("type=recovery")) {
+          router.push("/dashboard");
+        }
+      }
+
+      // Check for expired reset link error in URL hash
+      if (typeof window !== "undefined" && window.location.hash) {
+        const hash = window.location.hash;
+        if (hash.includes("error_code=otp_expired")) {
+          setMessage({
+            type: "error",
+            text: "Your password reset link has expired or was already used. Please request a new one."
+          });
+          setMode("forgot");
+          // Clean up the hash
+          window.history.replaceState(null, "", window.location.pathname);
+        }
       }
     };
     checkSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        router.push("/update-password");
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [router]);
 
   // Handle Login
