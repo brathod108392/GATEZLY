@@ -112,3 +112,22 @@ create policy "Admins and committee can manage flats" on public.flats for all to
 
 create policy "Authenticated users can view flat residents" on public.flat_residents for select to authenticated using (true);
 create policy "Admins and committee can manage flat residents" on public.flat_residents for all to authenticated using (public.get_user_role() in ('admin', 'committee'));
+
+-- Create Notices Table
+create table if not exists public.notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  is_emergency boolean default false,
+  author_id uuid references public.profiles(id) on delete set null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.notices enable row level security;
+
+create policy "Authenticated users can view notices" 
+  on public.notices for select to authenticated using (true);
+
+create policy "Admins and committee can manage notices" 
+  on public.notices for all to authenticated 
+  using (public.get_user_role() in ('admin', 'committee'));
