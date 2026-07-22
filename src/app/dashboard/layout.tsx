@@ -72,7 +72,7 @@ export default function ProtectedDashboardLayout({
         } else {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("is_active")
+            .select("is_active, society_id")
             .eq("id", session.user.id)
             .single();
 
@@ -80,6 +80,11 @@ export default function ProtectedDashboardLayout({
             await supabase.auth.signOut();
             setAuthenticated(false);
             router.push("/login?error=account_deactivated");
+            return;
+          }
+
+          if (profile && !profile.society_id && pathname !== "/dashboard/onboarding") {
+            router.push("/dashboard/onboarding");
             return;
           }
 
@@ -106,7 +111,7 @@ export default function ProtectedDashboardLayout({
         } else {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("is_active")
+            .select("is_active, society_id")
             .eq("id", session.user.id)
             .single();
 
@@ -114,6 +119,11 @@ export default function ProtectedDashboardLayout({
             await supabase.auth.signOut();
             setAuthenticated(false);
             router.push("/login?error=account_deactivated");
+            return;
+          }
+
+          if (profile && !profile.society_id && pathname !== "/dashboard/onboarding") {
+            router.push("/dashboard/onboarding");
             return;
           }
 
@@ -154,9 +164,13 @@ export default function ProtectedDashboardLayout({
     return null;
   }
 
+  // Hide sidebar and header on onboarding page
+  const isOnboarding = pathname === "/dashboard/onboarding";
+
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans selection:bg-blue-600 selection:text-white">
       {/* SIDEBAR (Desktop) */}
+      {!isOnboarding && (
       <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-white border-r border-slate-200 shrink-0 sticky top-0 h-screen z-30 shadow-sm">
         {/* Brand Logo */}
         <div className="p-5 border-b border-slate-100 flex items-center space-x-3">
@@ -216,9 +230,10 @@ export default function ProtectedDashboardLayout({
           </div>
         </div>
       </aside>
+      )}
 
       {/* MOBILE SIDEBAR MODAL */}
-      {mobileMenuOpen && (
+      {mobileMenuOpen && !isOnboarding && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div
             className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs"
@@ -278,6 +293,7 @@ export default function ProtectedDashboardLayout({
       {/* RIGHT MAIN AREA */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* HEADER BAR */}
+        {!isOnboarding && (
         <header className="sticky top-0 z-20 bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shadow-xs">
           <div className="flex items-center space-x-3">
             <button
@@ -326,6 +342,7 @@ export default function ProtectedDashboardLayout({
             </button>
           </div>
         </header>
+        )}
 
         {/* MAIN BODY CONTENT */}
         <main className="flex-1 p-6 sm:p-8 bg-slate-50">{children}</main>
