@@ -87,6 +87,59 @@ export default function NoticesPage() {
 
       if (error) throw error;
 
+      // --- BROADCAST PUSH NOTIFICATIONS ---
+      try {
+        // 1. Get the current user's society_id
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("society_id")
+          .eq("id", user.id)
+          .single();
+
+        if (profile?.society_id) {
+          // 2. Fetch all valid expo push tokens for users in this society
+          const { data: users } = await supabase
+            .from("profiles")
+            .select("expo_push_token")
+            .eq("society_id", profile.society_id)
+            .not("expo_push_token", "is", null);
+
+          if (users && users.length > 0) {
+            // Filter out empty tokens
+            const validTokens = users
+              .map(u => u.expo_push_token)
+              .filter(t => t && t.trim() !== '');
+
+            if (validTokens.length > 0) {
+              const pushPrefix = formData.is_emergency ? "🚨 Emergency Alert:" : "📢 New Society Notice:";
+              
+              // 3. Send batch request to Expo Push API
+              const pushMessages = validTokens.map(token => ({
+                to: token,
+                sound: 'default',
+                title: `${pushPrefix} ${formData.title}`,
+                body: formData.body,
+                data: { screen: 'notices' },
+              }));
+
+              // Fire and forget (don't block the UI)
+              fetch('https://exp.host/--/api/v2/push/send', {
+                method: 'POST',
+                headers: {
+                  'Accept': 'application/json',
+                  'Accept-encoding': 'gzip, deflate',
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(pushMessages),
+              }).catch(err => console.error("Expo Push Request Failed:", err));
+            }
+          }
+        }
+      } catch (pushErr) {
+        console.error("Failed to broadcast push notifications:", pushErr);
+      }
+      // ------------------------------------
+
       setIsModalOpen(false);
       setFormData({ title: "", body: "", is_emergency: false });
       fetchNotices();
