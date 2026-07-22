@@ -53,6 +53,13 @@ export default function ProtectedDashboardLayout({
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [globalSearchQuery, setGlobalSearchQuery] = useState("");
+
+  const handleGlobalSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && globalSearchQuery.trim()) {
+      router.push(`/dashboard/residents?search=${encodeURIComponent(globalSearchQuery.trim())}`);
+    }
+  };
 
   useEffect(() => {
     // 1. Initial Session Check
@@ -296,6 +303,9 @@ export default function ProtectedDashboardLayout({
               <input
                 type="text"
                 placeholder="Search residents, flats, passes..."
+                value={globalSearchQuery}
+                onChange={(e) => setGlobalSearchQuery(e.target.value)}
+                onKeyDown={handleGlobalSearch}
                 className="pl-9 pr-4 py-1.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white w-60 transition"
               />
             </div>

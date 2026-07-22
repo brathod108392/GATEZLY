@@ -76,3 +76,51 @@ export async function PUT(
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const id = params.id;
+    if (!id) {
+      return NextResponse.json({ error: "Missing resident ID" }, { status: 400 });
+    }
+
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    
+    // Verify caller is admin or committee
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { data: callerProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (!callerProfile || !['admin', 'committee'].includes(callerProfile.role)) {
+      return NextResponse.json({ error: "Forbidden: insufficient permissions" }, { status: 403 });
+    }
+
+    // Permanently delete user from Auth
+    // Because of ON DELETE CASCADE on profiles, this will wipe everything
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(id);
+    
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
+  }
+}

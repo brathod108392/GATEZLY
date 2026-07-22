@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Users, Plus, Loader2, Search, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { useSearchParams } from "next/navigation";
 
 interface Resident {
   id: string;
@@ -16,9 +17,17 @@ interface Resident {
     is_owner: boolean;
     flats?: {
       number: string;
+      property_type?: string;
       towers?: { name: string };
     };
   }[];
+}
+
+interface VacantFlat {
+  id: string;
+  number: string;
+  property_type: string;
+  towers: { name: string } | null;
 }
 
 export default function ResidentsPage() {
@@ -30,7 +39,10 @@ export default function ResidentsPage() {
   const [inviteSuccess, setInviteSuccess] = useState("");
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get("search") || "";
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -45,6 +57,11 @@ export default function ResidentsPage() {
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
   const [editSuccess, setEditSuccess] = useState("");
+  
+  // Reassign State
+  const [vacantFlats, setVacantFlats] = useState<VacantFlat[]>([]);
+  const [selectedReassignFlatId, setSelectedReassignFlatId] = useState("");
+  const [selectedReassignIsOwner, setSelectedReassignIsOwner] = useState(false);
 
   useEffect(() => {
     fetchCurrentUserRole();
@@ -72,6 +89,7 @@ export default function ResidentsPage() {
           is_owner,
           flats (
             number,
+            property_type,
             towers ( name )
           )
         )
@@ -151,7 +169,7 @@ export default function ResidentsPage() {
     }
   };
 
-  const openEditModal = (resident: Resident) => {
+  const openEditModal = async (resident: Resident) => {
     setSelectedResident(resident);
     setEditFormData({
       name: resident.full_name || "",
@@ -159,7 +177,20 @@ export default function ResidentsPage() {
     });
     setEditError("");
     setEditSuccess("");
+    setSelectedReassignFlatId("");
     setIsEditModalOpen(true);
+
+    if (resident.is_active === false) {
+      // Fetch available flats for reassignment
+      const { data, error } = await supabase
+        .from("flats")
+        .select("id, number, property_type, towers(name)")
+        .order("number");
+        
+      if (!error && data) {
+        setVacantFlats(data as unknown as VacantFlat[]);
+      }
+    }
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -232,6 +263,81 @@ export default function ResidentsPage() {
       setEditLoading(false);
     }
   };
+
+  const handleDeletePermanent = async () => {
+    if (!selectedResident) return;
+    if (!confirm(`WARNING: This will permanently delete ${selectedResident.full_name} and wipe their login credentials completely. This cannot be undone. Proceed?`)) return;
+    
+    setEditLoading(true);
+    setEditError("");
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/residents/${selectedResident.id}`, {
+        method: "DELETE",
+        headers: { 
+          "Authorization": `Bearer ${session?.access_token}`
+        }
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete resident");
+
+      setEditSuccess("Resident permanently deleted.");
+      fetchResidents();
+      setTimeout(() => {
+        setIsEditModalOpen(false);
+        setEditSuccess("");
+      }, 1500);
+    } catch (err: unknown) {
+      setEditError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleReassign = async () => {
+    if (!selectedResident || !selectedReassignFlatId) return;
+    
+    setEditLoading(true);
+    setEditError("");
+    
+    try {
+      const { error: assignError } = await supabase
+        .from("flat_residents")
+        .insert({
+          flat_id: selectedReassignFlatId,
+          resident_id: selectedResident.id,
+          is_owner: selectedReassignIsOwner,
+          move_in_date: new Date().toISOString()
+        });
+        
+      if (assignError) throw assignError;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/residents/${selectedResident.id}`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({ is_active: true }),
+      });
+      if (!res.ok) throw new Error("Failed to activate resident profile");
+
+      setEditSuccess("Resident reassigned and activated successfully!");
+      fetchResidents();
+      setTimeout(() => {
+        setIsEditModalOpen(false);
+        setEditSuccess("");
+      }, 1500);
+    } catch (err: unknown) {
+      setEditError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
 
   if (roleLoading) {
     return (
@@ -337,9 +443,18 @@ export default function ResidentsPage() {
                         <div className="space-y-1">
                           {resident.flat_residents.map((fr, idx) => (
                             <div key={idx} className="flex items-center space-x-1">
-                              <span className="text-sm font-bold text-slate-800">{fr.flats?.number}</span>
-                              <span className="text-xs text-slate-500">({fr.flats?.towers?.name})</span>
-                              {fr.is_owner && <span className="ml-1 text-[9px] font-bold bg-amber-100 text-amber-700 px-1 py-0.5 rounded">OWNER</span>}
+                              {fr.flats?.property_type === 'bungalow' ? (
+                                <span className="text-sm font-bold text-slate-800">Bungalow {fr.flats?.number}</span>
+                              ) : (
+                                <>
+                                  <span className="text-sm font-bold text-slate-800">{fr.flats?.towers?.name} &bull; {fr.flats?.property_type === 'apartment' ? 'Apt' : 'Flat'} {fr.flats?.number}</span>
+                                </>
+                              )}
+                              {fr.is_owner ? (
+                                <span className="ml-1 text-[9px] font-bold bg-amber-100 text-amber-700 px-1 py-0.5 rounded">OWNER</span>
+                              ) : (
+                                <span className="ml-1 text-[9px] font-bold bg-indigo-100 text-indigo-700 px-1 py-0.5 rounded">TENANT</span>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -548,6 +663,65 @@ export default function ResidentsPage() {
                     >
                       Deactivate Resident (Moved Out)
                     </button>
+                  </div>
+                )}
+                
+                {(!selectedResident.is_active || !selectedResident.flat_residents || selectedResident.flat_residents.length === 0) && (
+                  <div className="pt-4 mt-2 border-t border-slate-100 space-y-4">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800 mb-2">Assign to Property</h4>
+                      <p className="text-xs text-slate-500 mb-2">
+                        {selectedResident.is_active === false 
+                          ? "If this resident is moving within the society, assign them to a new property to reactivate their account."
+                          : "Assign this active resident to a vacant property."}
+                      </p>
+                      <div className="flex flex-col space-y-2">
+                        <select
+                          value={selectedReassignFlatId}
+                          onChange={(e) => setSelectedReassignFlatId(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:border-blue-500"
+                        >
+                          <option value="">Select a property...</option>
+                          {vacantFlats.map((flat) => (
+                            <option key={flat.id} value={flat.id}>
+                              {flat.property_type === 'bungalow' ? 'Bungalow' : (flat.property_type === 'apartment' ? 'Apartment' : 'Flat')} {flat.number} 
+                              {flat.towers?.name ? ` (${flat.towers.name})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="flex space-x-2">
+                          <select
+                            value={selectedReassignIsOwner ? "owner" : "tenant"}
+                            onChange={(e) => setSelectedReassignIsOwner(e.target.value === "owner")}
+                            className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:border-blue-500"
+                          >
+                            <option value="tenant">Tenant</option>
+                            <option value="owner">Owner</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={handleReassign}
+                            disabled={!selectedReassignFlatId || editLoading}
+                            className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition disabled:opacity-50"
+                          >
+                            Assign
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {selectedResident.is_active === false && (
+                      <div className="pt-4 border-t border-slate-100">
+                        <button 
+                          type="button"
+                          onClick={handleDeletePermanent}
+                          disabled={editLoading}
+                          className="w-full px-4 py-2.5 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition"
+                        >
+                          Permanently Delete Account
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

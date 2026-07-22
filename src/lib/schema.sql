@@ -72,6 +72,7 @@ create trigger on_auth_user_created
 create table if not exists public.towers (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  structure_type text default 'tower',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -81,6 +82,7 @@ create table if not exists public.flats (
   tower_id uuid references public.towers(id) on delete cascade not null,
   number text not null,
   floor integer,
+  property_type text default 'flat',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique(tower_id, number)
 );
