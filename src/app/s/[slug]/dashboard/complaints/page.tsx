@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { MessageSquareWarning, Plus, Search, Loader2, Clock, CheckCircle2, Wrench } from "lucide-react";
+import { MessageSquareWarning, Search, Loader2, Clock, CheckCircle2, Wrench } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useSociety } from "@/components/providers/society-provider";
 
@@ -26,6 +26,7 @@ export default function ComplaintsPage() {
 
   useEffect(() => {
     fetchComplaints();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchComplaints = async () => {

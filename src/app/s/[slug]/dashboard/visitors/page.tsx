@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { UserCheck, QrCode, Search, Check, X, Loader2, Clock, UserX } from "lucide-react";
+import { UserCheck, QrCode, Search, Check, X, Loader2, Clock } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useSociety } from "@/components/providers/society-provider";
 
@@ -25,6 +25,7 @@ export default function VisitorsPage() {
 
   useEffect(() => {
     fetchVisitors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchVisitors = async () => {
