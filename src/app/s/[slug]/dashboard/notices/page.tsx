@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Megaphone, Plus, Loader2, X, AlertTriangle, Calendar, User } from "lucide-react";
+import { Megaphone, Plus, Search, Loader2, AlertTriangle, Pin, Calendar, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useSociety } from "@/components/providers/society-provider";
 
@@ -10,327 +10,278 @@ interface Notice {
   title: string;
   body: string;
   is_emergency: boolean;
+  category: string;
+  pinned: boolean;
   created_at: string;
-  profiles: {
+  profiles?: {
     full_name: string;
-    role: string;
-  } | null;
+  };
 }
 
 export default function NoticesPage() {
   const { society } = useSociety();
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState("all");
 
-  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ title: "", body: "", category: "General", is_emergency: false, pinned: false });
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
-  
-  // Form State
-  const [formData, setFormData] = useState({
-    title: "",
-    body: "",
-    is_emergency: false,
-  });
 
   useEffect(() => {
-    fetchCurrentUserRole();
     fetchNotices();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const fetchCurrentUserRole = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-      if (data) {
-        setCurrentUserRole(data.role);
-      }
-  };
 
   const fetchNotices = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("notices")
-      .select(`
-        *,
-        profiles (
-          full_name,
-          role
-        )
-      `)
+      .select("*, profiles(full_name)")
       .eq("society_id", society.id)
+      .order("pinned", { ascending: false })
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching notices:", error);
-    } else {
-      setNotices((data as unknown as Notice[]) || []);
+    if (!error && data) {
+      setNotices(data);
     }
     setLoading(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCreateNotice = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionLoading(true);
     setActionError("");
 
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+    const { error } = await supabase.from("notices").insert([
+      { ...formData, society_id: society.id }
+    ]);
 
-      const { error } = await supabase.from("notices").insert({
-        title: formData.title,
-        body: formData.body,
-        is_emergency: formData.is_emergency,
-        author_id: user.id,
-        society_id: society.id
-      });
-
-      if (error) throw error;
-
-      // --- BROADCAST PUSH NOTIFICATIONS ---
-      try {
-        // 1. Get the current user's society_id (optional for test env)
-        // 1. (Unused profile fetch removed)
-
-        // 2. Fetch all valid expo push tokens
-        let query = supabase.from("profiles").select("expo_push_token").not("expo_push_token", "is", null);
-        
-        // Only filter by society_id if we have one
-        if (society?.id) {
-            query = query.eq("society_id", society.id);
-        }
-
-        const { data: users } = await query;
-
-        if (users && users.length > 0) {
-          // Filter out empty tokens
-          const validTokens = users
-            .map(u => u.expo_push_token)
-            .filter(t => t && t.trim() !== '');
-
-            if (validTokens.length > 0) {
-              const pushPrefix = formData.is_emergency ? "🚨 Emergency Alert:" : "📢 New Society Notice:";
-              
-              // 3. Send batch request to Expo Push API
-              const pushMessages = validTokens.map(token => ({
-                to: token,
-                sound: 'default',
-                title: `${pushPrefix} ${formData.title}`,
-                body: formData.body,
-                data: { screen: 'notices' },
-              }));
-
-              // Fire and forget (don't block the UI)
-              fetch('https://exp.host/--/api/v2/push/send', {
-                method: 'POST',
-                headers: {
-                  'Accept': 'application/json',
-                  'Accept-encoding': 'gzip, deflate',
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(pushMessages),
-              }).catch(err => console.error("Expo Push Request Failed:", err));
-          }
-        }
-      } catch (pushErr) {
-        console.error("Failed to broadcast push notifications:", pushErr);
-      }
-      // ------------------------------------
-
+    if (error) {
+      setActionError(error.message);
+    } else {
       setIsModalOpen(false);
-      setFormData({ title: "", body: "", is_emergency: false });
+      setFormData({ title: "", body: "", category: "General", is_emergency: false, pinned: false });
       fetchNotices();
-    } catch (err: unknown) {
-      console.error("Notice Insert Error:", err);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const e = err as any;
-      setActionError(e.message || (typeof e === 'object' ? JSON.stringify(e) : String(e)));
-    } finally {
-      setActionLoading(false);
     }
+    setActionLoading(false);
   };
 
-  const canManage = currentUserRole === "admin" || currentUserRole === "committee";
+  const handleTogglePin = async (id: string, currentPinned: boolean) => {
+    await supabase.from("notices").update({ pinned: !currentPinned }).eq("id", id);
+    fetchNotices();
+  };
+
+  const filteredNotices = notices.filter((n) => {
+    const match = (n.title || "").toLowerCase().includes(searchQuery.toLowerCase()) || (n.body || "").toLowerCase().includes(searchQuery.toLowerCase());
+    if (filter === "all") return match;
+    if (filter === "emergency") return match && n.is_emergency;
+    return match && n.category.toLowerCase() === filter.toLowerCase();
+  });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="bg-white rounded-3xl border border-slate-200/60 p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 flex items-center space-x-2">
-            <Megaphone className="h-6 w-6 text-indigo-600" />
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
+      {/* Header Section */}
+      <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-slate-200/60 p-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3 tracking-tight">
+            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+              <Megaphone className="h-6 w-6" />
+            </div>
             <span>Digital Notice Board</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Broadcast society notices, circulars, and emergency alerts instantly to all residents.
+          <p className="text-sm text-slate-500 max-w-xl leading-relaxed">
+            Broadcast important updates, events, and emergency alerts to all residents.
           </p>
         </div>
-        {canManage && (
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm shadow-sm hover:shadow-md hover:shadow-indigo-500/20 transition-all cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Create Notice</span>
-          </button>
-        )}
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm shadow-sm transition-all active:scale-95 cursor-pointer"
+        >
+          <Plus className="h-4 w-4" />
+          <span>New Broadcast</span>
+        </button>
       </div>
 
-      {/* Notices List */}
-      {loading ? (
-        <div 
-          className="bg-white rounded-3xl border border-slate-200/60 p-12 text-center text-slate-500 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
-          style={{ animationDelay: '100ms' }}
-        >
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-indigo-500" />
-          <p className="text-sm font-medium">Loading notices...</p>
-        </div>
-      ) : notices.length === 0 ? (
-        <div 
-          className="bg-white rounded-3xl border border-slate-200/60 p-12 text-center space-y-3 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
-          style={{ animationDelay: '100ms' }}
-        >
-          <div className="h-16 w-16 rounded-3xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
-            <Megaphone className="h-8 w-8" />
-          </div>
-          <h3 className="text-lg font-bold text-slate-900">No Notices Yet</h3>
-          <p className="text-sm text-slate-500 max-w-sm mx-auto">
-            There are currently no active announcements on the board.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {notices.map((notice, index) => (
-            <div 
-              key={notice.id} 
-              className={`bg-white rounded-3xl border overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both ${
-                notice.is_emergency 
-                  ? 'border-red-200 shadow-sm hover:shadow-md hover:shadow-red-500/10 transition-all' 
-                  : 'border-slate-200/60 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all'
-              }`}
-              style={{ animationDelay: `${(index + 1) * 100}ms` }}
-            >
-              {notice.is_emergency && (
-                <div className="bg-red-50 text-red-700 border-b border-red-100 text-xs font-bold uppercase tracking-wider px-5 py-2.5 flex items-center space-x-1.5">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>Emergency Alert</span>
-                </div>
-              )}
-              <div className="p-6 flex-1 flex flex-col">
-                <h3 className="text-xl font-bold text-slate-900 mb-2 leading-tight">
-                  {notice.title}
-                </h3>
-                <p className="text-sm text-slate-600 whitespace-pre-wrap flex-1">
-                  {notice.body}
-                </p>
-                <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                  <div className="flex items-center space-x-1.5">
-                    <User className="h-4 w-4" />
-                    <span className="font-medium text-slate-700">{notice.profiles?.full_name || 'Admin'}</span>
-                  </div>
-                  <div className="flex items-center space-x-1.5 bg-slate-50 px-2 py-1 rounded-lg">
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span>{new Date(notice.created_at).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Create Notice Modal */}
-      {isModalOpen && canManage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-300">
-            <div className="flex items-center justify-between p-6 sm:p-8 border-b border-slate-100">
-              <h3 className="text-xl font-bold text-slate-900 flex items-center space-x-2">
-                <div className="bg-indigo-50 p-2 rounded-xl text-indigo-600">
-                  <Megaphone className="h-5 w-5" />
-                </div>
-                <span>Create New Notice</span>
-              </h3>
+      <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden flex flex-col">
+        {/* Filters and Search */}
+        <div className="p-5 border-b border-slate-200/80 bg-slate-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+          <div className="flex items-center p-1 bg-slate-200/50 rounded-xl space-x-1 border border-slate-200/50 overflow-x-auto max-w-full">
+            {['all', 'General', 'Maintenance', 'emergency'].map(cat => (
               <button 
-                onClick={() => setIsModalOpen(false)} 
+                key={cat}
+                onClick={() => setFilter(cat)} 
+                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all capitalize whitespace-nowrap ${filter === cat ? "bg-white text-indigo-700 shadow-sm ring-1 ring-black/5" : "text-slate-600 hover:text-slate-900"}`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative w-full xl:w-auto">
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="Search notices..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 w-full xl:w-80 bg-white hover:border-slate-300 transition-colors shadow-sm"
+            />
+          </div>
+        </div>
+        
+        {/* Notices Grid */}
+        <div className="p-6">
+          {loading ? (
+            <div className="py-16 text-center text-slate-500">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-3 text-indigo-500" />
+              <p className="text-sm font-medium">Loading broadcasts...</p>
+            </div>
+          ) : filteredNotices.length === 0 ? (
+            <div className="py-16 text-center text-slate-500">
+              <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-3 ring-1 ring-slate-200">
+                <Megaphone className="h-5 w-5 text-slate-400" />
+              </div>
+              <p className="text-sm font-medium text-slate-700">No notices found</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredNotices.map((n) => (
+                <div key={n.id} className={`rounded-2xl p-6 border ${n.is_emergency ? 'bg-rose-50/50 border-rose-200' : 'bg-white border-slate-200'} shadow-sm flex flex-col h-full relative group`}>
+                  {n.pinned && (
+                    <div className="absolute top-4 right-4 text-indigo-500">
+                      <Pin className="h-5 w-5 fill-indigo-500" />
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${n.is_emergency ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>
+                      {n.category}
+                    </span>
+                    {n.is_emergency && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700">
+                        <AlertTriangle className="h-3 w-3" /> Emergency
+                      </span>
+                    )}
+                  </div>
+                  
+                  <h3 className={`text-lg font-bold mb-2 ${n.is_emergency ? 'text-rose-900' : 'text-slate-900'}`}>{n.title}</h3>
+                  <p className="text-sm text-slate-600 mb-6 flex-grow leading-relaxed">{n.body}</p>
+                  
+                  <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {new Date(n.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </div>
+                    <button 
+                      onClick={() => handleTogglePin(n.id, n.pinned)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                    >
+                      {n.pinned ? 'Unpin' : 'Pin to Top'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* New Notice Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-slate-200/50">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h3 className="text-xl font-bold text-slate-900">New Broadcast</h3>
+              <button 
+                onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-5">
+            <form onSubmit={handleCreateNotice} className="p-6 space-y-5">
               {actionError && (
-                <div className="text-red-600 text-sm bg-red-50 p-4 rounded-2xl border border-red-100 flex items-center space-x-2">
-                  <AlertTriangle className="h-4 w-4 shrink-0" />
-                  <span>{actionError}</span>
+                <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium">
+                  {actionError}
                 </div>
               )}
-              
+
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Notice Title</label>
                 <input 
                   type="text" 
-                  required 
-                  maxLength={100}
-                  placeholder="e.g. Scheduled Water Maintenance"
-                  value={formData.title} 
-                  onChange={e => setFormData({...formData, title: e.target.value})} 
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                  value={formData.title}
+                  onChange={e => setFormData({...formData, title: e.target.value})}
+                  required
+                  placeholder="e.g. Water Supply Interruption"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-700">Notice Content</label>
+                <label className="text-sm font-semibold text-slate-700">Category</label>
+                <select 
+                  value={formData.category}
+                  onChange={e => setFormData({...formData, category: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
+                >
+                  <option value="General">General Announcement</option>
+                  <option value="Maintenance">Maintenance & Repairs</option>
+                  <option value="Event">Community Event</option>
+                  <option value="Security">Security Alert</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">Message Body</label>
                 <textarea 
-                  required 
-                  rows={5}
-                  placeholder="Write the full details of the notice here..."
-                  value={formData.body} 
-                  onChange={e => setFormData({...formData, body: e.target.value})} 
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none placeholder:text-slate-400"
+                  value={formData.body}
+                  onChange={e => setFormData({...formData, body: e.target.value})}
+                  required
+                  rows={4}
+                  placeholder="Type your notice content here..."
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm resize-none"
                 />
               </div>
 
-              <div className="flex items-center space-x-4 p-4 sm:p-5 bg-slate-50/50 rounded-2xl border border-slate-200/60">
-                <div className="flex items-center h-5">
+              <div className="flex items-center gap-6 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input 
                     type="checkbox" 
-                    id="is_emergency" 
-                    checked={formData.is_emergency} 
-                    onChange={e => setFormData({...formData, is_emergency: e.target.checked})} 
-                    className="rounded border-slate-300 text-red-600 focus:ring-red-500 focus:ring-offset-0 h-5 w-5 cursor-pointer" 
+                    checked={formData.pinned}
+                    onChange={e => setFormData({...formData, pinned: e.target.checked})}
+                    className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
                   />
-                </div>
-                <div className="flex flex-col">
-                  <label htmlFor="is_emergency" className="text-sm font-bold text-slate-900 cursor-pointer">
-                    Mark as Emergency
-                  </label>
-                  <span className="text-xs text-slate-500 mt-0.5">
-                    Highlights the notice in red and sends high-priority alerts.
-                  </span>
-                </div>
+                  <span className="text-sm font-medium text-slate-700">Pin to top</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={formData.is_emergency}
+                    onChange={e => setFormData({...formData, is_emergency: e.target.checked})}
+                    className="w-5 h-5 rounded border-slate-300 text-rose-600 focus:ring-rose-600"
+                  />
+                  <span className="text-sm font-medium text-rose-600">Mark as Emergency</span>
+                </label>
               </div>
 
-              <div className="pt-4 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+              <div className="pt-4 flex justify-end gap-3">
                 <button 
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-3 px-4 text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-2xl transition-colors"
+                  className="px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
-                  type="submit" 
-                  disabled={actionLoading} 
-                  className="flex-1 py-3 px-4 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-2xl transition-all shadow-sm hover:shadow-md hover:shadow-indigo-500/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm shadow-indigo-600/20 disabled:opacity-70 flex items-center justify-center min-w-[140px]"
                 >
-                  {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  <span>{actionLoading ? "Posting..." : "Post Notice"}</span>
+                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Broadcast Notice"}
                 </button>
               </div>
             </form>
