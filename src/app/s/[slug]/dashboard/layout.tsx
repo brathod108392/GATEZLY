@@ -57,7 +57,7 @@ export default function ProtectedDashboardLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
   const [globalSearchQuery, setGlobalSearchQuery] = useState("");
-  const [society, setSociety] = useState<any>(null);
+  const [society, setSociety] = useState<{ id: string; name: string; slug: string; modules: Record<string, boolean> } | null>(null);
 
   const handleGlobalSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && globalSearchQuery.trim()) {

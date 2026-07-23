@@ -8,12 +8,22 @@ import {
   ExternalLink,
   Loader2,
   Plus,
-  ShieldCheck,
   Search
 } from "lucide-react";
 
+interface Society {
+  id: string;
+  name: string;
+  slug: string;
+  created_at: string;
+  is_active: boolean;
+  address: string;
+  modules: Record<string, boolean>;
+  subscription_plan: string;
+}
+
 export default function SuperAdminDashboard() {
-  const [societies, setSocieties] = useState<any[]>([]);
+  const [societies, setSocieties] = useState<Society[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 

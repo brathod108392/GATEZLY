@@ -52,9 +52,10 @@ export default function CreateSocietyPage() {
         // Automatically redirect to the society dashboard
         router.push(`/s/${data.slug}/dashboard`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setErrorMsg(err.message || "An error occurred while creating the society.");
+      const error = err as Error;
+      setErrorMsg(error.message || "An error occurred while creating the society.");
     } finally {
       setLoading(false);
     }
@@ -114,7 +115,7 @@ export default function CreateSocietyPage() {
                   className="flex-1 px-4 py-2.5 bg-transparent focus:outline-none text-slate-900 text-sm font-bold font-mono"
                 />
               </div>
-              <p className="text-xs text-slate-500 mt-1.5 font-medium">This will be the unique URL for this society's portal.</p>
+              <p className="text-xs text-slate-500 mt-1.5 font-medium">This will be the unique URL for this society&apos;s portal.</p>
             </div>
 
             <div>

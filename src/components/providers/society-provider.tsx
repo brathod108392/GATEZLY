@@ -3,7 +3,7 @@
 import React, { createContext, useContext } from "react";
 
 interface SocietyContextType {
-  society: any;
+  society: Record<string, unknown>;
 }
 
 const SocietyContext = createContext<SocietyContextType | undefined>(undefined);
@@ -13,7 +13,7 @@ export function SocietyProvider({
   society,
 }: {
   children: React.ReactNode;
-  society: any;
+  society: Record<string, unknown>;
 }) {
   return (
     <SocietyContext.Provider value={{ society }}>

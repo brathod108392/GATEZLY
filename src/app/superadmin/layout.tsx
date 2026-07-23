@@ -10,7 +10,6 @@ import {
   LogOut,
   Loader2,
   Menu,
-  X,
   Plus
 } from "lucide-react";
 
@@ -24,7 +23,6 @@ export default function SuperAdminLayout({
 
   const [authenticated, setAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
 
   useEffect(() => {
@@ -160,7 +158,6 @@ export default function SuperAdminLayout({
         <header className="sticky top-0 z-20 bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shadow-xs lg:hidden">
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => setMobileMenuOpen(true)}
               className="p-2 rounded-xl text-slate-600 hover:bg-slate-100"
             >
               <Menu className="h-5 w-5" />

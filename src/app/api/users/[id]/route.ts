@@ -40,7 +40,7 @@ export async function PUT(
     const targetUserId = params.id;
     const body = await request.json();
     
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (body.full_name !== undefined) updateData.full_name = body.full_name;
     if (body.phone !== undefined) updateData.phone = body.phone;
     if (body.role !== undefined) updateData.role = body.role;
@@ -77,9 +77,10 @@ export async function PUT(
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API Update User Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const err = error as Error;
+    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
   }
 }
 
@@ -136,8 +137,9 @@ export async function DELETE(
     if (deleteError) throw deleteError;
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API Delete User Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const err = error as Error;
+    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
   }
 }

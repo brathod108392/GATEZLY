@@ -71,6 +71,7 @@ export default function UsersPage() {
   useEffect(() => {
     fetchCurrentUserRole();
     fetchResidents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchCurrentUserRole = async () => {

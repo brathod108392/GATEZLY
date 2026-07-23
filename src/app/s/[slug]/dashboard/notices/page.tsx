@@ -38,16 +38,17 @@ export default function NoticesPage() {
   useEffect(() => {
     fetchCurrentUserRole();
     fetchNotices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchCurrentUserRole = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    if (!user) return;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single();
       if (data) {
         setCurrentUserRole(data.role);
       }
-    }
   };
 
   const fetchNotices = async () => {
@@ -94,11 +95,7 @@ export default function NoticesPage() {
       // --- BROADCAST PUSH NOTIFICATIONS ---
       try {
         // 1. Get the current user's society_id (optional for test env)
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("society_id")
-          .eq("id", user.id)
-          .single();
+        // 1. (Unused profile fetch removed)
 
         // 2. Fetch all valid expo push tokens
         let query = supabase.from("profiles").select("expo_push_token").not("expo_push_token", "is", null);

@@ -15,10 +15,7 @@ import {
   AlertCircle,
   KeyRound,
   ArrowLeft,
-  Loader2,
-  ShieldAlert,
-  Users,
-  Check
+  Loader2
 } from "lucide-react";
 
 export default function LoginPage() {
@@ -30,8 +27,6 @@ export default function LoginPage() {
   // Form fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<"admin" | "committee">("committee");
   const [showPassword, setShowPassword] = useState(false);
 
   // States
@@ -112,7 +107,6 @@ export default function LoginPage() {
       } else if (data.session && data.user) {
         // Ensure email & updated_at are set in profiles table on login
         const now = new Date().toISOString();
-        const userEmail = (data.user.email || email).trim().toLowerCase();
         
         // Fetch profile to determine redirect
         const { data: profile } = await supabase
