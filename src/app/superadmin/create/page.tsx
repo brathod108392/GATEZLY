@@ -40,7 +40,8 @@ export default function CreateSocietyPage() {
           notices: true,
           maintenance: true,
           parking: false
-        }
+        },
+        payment_status: 'unpaid'
       }).select().single();
 
       if (error) {
