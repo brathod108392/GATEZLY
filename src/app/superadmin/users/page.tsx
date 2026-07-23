@@ -1,23 +1,43 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, User, Filter } from 'lucide-react';
+import { Search, User, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
-type UserProfile = { id: string; email?: string; full_name?: string; role?: string; society_id?: string; society_name?: string; created_at?: string; status?: string };
+type UserProfile = { id: string; email?: string; full_name?: string; role?: string; society_id?: string; society_name?: string; societies?: { name: string }; created_at?: string; status?: string };
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const limit = 20;
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    // Simulating call to /api/platform/users or direct supabase query
-    const { data } = await supabase.from('profiles').select('*').limit(50);
-    if (data) setUsers(data);
+    const start = page * limit;
+    const end = start + limit - 1;
+    
+    // Using exact count and range for pagination, also joining societies to get the name
+    const { data, count } = await supabase
+      .from('profiles')
+      .select('*, societies(name)', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(start, end);
+      
+    if (data) {
+      const formattedUsers = data.map((u: Record<string, unknown>) => ({
+        ...u,
+        society_name: (u.societies as { name?: string })?.name || null
+      }));
+      setUsers(formattedUsers as UserProfile[]);
+    }
+    if (count !== null) {
+      setTotalUsers(count);
+    }
     setLoading(false);
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     fetchUsers();
@@ -27,6 +47,8 @@ export default function UsersPage() {
     (user.full_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     (user.email?.toLowerCase() || '').includes(searchQuery.toLowerCase())
   );
+
+  const totalPages = Math.ceil(totalUsers / limit);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 fill-mode-forwards p-6 max-w-7xl mx-auto">
@@ -63,7 +85,7 @@ export default function UsersPage() {
                 <th className="px-6 py-4 font-medium">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-12 text-center text-slate-400 animate-pulse">
@@ -72,14 +94,14 @@ export default function UsersPage() {
                 </tr>
               ) : filteredUsers.length > 0 ? (
                 filteredUsers.map((user, idx) => (
-                  <tr key={user.id || idx} className="hover:bg-white transition-colors group">
+                  <tr key={user.id || idx} className="hover:bg-slate-50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
                           <User className="w-4 h-4 text-slate-500" />
                         </div>
                         <div>
-                          <p className="text-slate-900 font-medium group-hover:text-indigo-400 transition-colors">{user.full_name || 'Unknown User'}</p>
+                          <p className="text-slate-900 font-medium group-hover:text-indigo-600 transition-colors">{user.full_name || 'Unknown User'}</p>
                           <p className="text-slate-400 text-xs">{user.email}</p>
                         </div>
                       </div>
@@ -93,7 +115,7 @@ export default function UsersPage() {
                       {user.society_name || 'N/A'}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium">
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-xs font-medium">
                         Active
                       </span>
                     </td>
@@ -109,6 +131,34 @@ export default function UsersPage() {
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination UI */}
+        {!loading && totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+            <p className="text-sm text-slate-500">
+              Showing <span className="font-medium text-slate-900">{page * limit + 1}</span> to <span className="font-medium text-slate-900">{Math.min((page + 1) * limit, totalUsers)}</span> of <span className="font-medium text-slate-900">{totalUsers}</span> users
+            </p>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className="text-sm font-medium text-slate-700 px-2">
+                Page {page + 1} of {totalPages}
+              </div>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
