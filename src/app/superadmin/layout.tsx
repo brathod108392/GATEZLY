@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import {
   ShieldCheck,
-  Building2,
   LogOut,
   Loader2,
   Menu,
@@ -144,7 +143,7 @@ export default function SuperAdminLayout({
       )}
 
       {/* SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col w-72 bg-slate-900 text-white shadow-2xl transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col w-72 bg-white border-r border-slate-200 shadow-2xl transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -152,17 +151,17 @@ export default function SuperAdminLayout({
                 <ShieldCheck className="h-5 w-5 text-white" />
               </div>
               <div>
-                <div className="font-extrabold text-xl tracking-tight leading-none text-white">
+                <div className="font-extrabold text-xl tracking-tight leading-none text-slate-900">
                   Gatezly
                 </div>
-                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1 block">
+                <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-1 block">
                   Super Admin
                 </span>
               </div>
             </div>
             <button 
               onClick={() => setMobileMenuOpen(false)}
-              className="lg:hidden p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              className="lg:hidden p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -171,39 +170,27 @@ export default function SuperAdminLayout({
 
         <nav className="flex-1 px-4 py-2 space-y-1.5 overflow-y-auto">
           <Link
-            href="/superadmin/overview"
-            onClick={() => setMobileMenuOpen(false)}
-            className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
-              pathname === "/superadmin/overview"
-                ? "bg-white/10 text-white shadow-sm ring-1 ring-white/10"
-                : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-            }`}
-          >
-            <LayoutDashboard className={`h-4 w-4 transition-colors ${pathname === "/superadmin/overview" ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
-            <span>Overview</span>
-          </Link>
-          <Link
             href="/superadmin"
             onClick={() => setMobileMenuOpen(false)}
             className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
               pathname === "/superadmin"
-                ? "bg-white/10 text-white shadow-sm ring-1 ring-white/10"
-                : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                ? "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
-            <Building2 className={`h-4 w-4 transition-colors ${pathname === "/superadmin" ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
-            <span>Societies</span>
+            <LayoutDashboard className={`h-4 w-4 transition-colors ${pathname === "/superadmin" ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"}`} />
+            <span>Overview</span>
           </Link>
           <Link
             href="/superadmin/users"
             onClick={() => setMobileMenuOpen(false)}
             className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
               pathname === "/superadmin/users"
-                ? "bg-white/10 text-white shadow-sm ring-1 ring-white/10"
-                : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                ? "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
-            <Users className={`h-4 w-4 transition-colors ${pathname === "/superadmin/users" ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+            <Users className={`h-4 w-4 transition-colors ${pathname === "/superadmin/users" ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"}`} />
             <span>Global Users</span>
           </Link>
           <Link
@@ -211,23 +198,23 @@ export default function SuperAdminLayout({
             onClick={() => setMobileMenuOpen(false)}
             className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
               pathname === "/superadmin/admins"
-                ? "bg-white/10 text-white shadow-sm ring-1 ring-white/10"
-                : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                ? "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
-            <Shield className={`h-4 w-4 transition-colors ${pathname === "/superadmin/admins" ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+            <Shield className={`h-4 w-4 transition-colors ${pathname === "/superadmin/admins" ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"}`} />
             <span>Admins</span>
           </Link>
           <Link
-            href="/superadmin/activity"
+            href="/superadmin/logs"
             onClick={() => setMobileMenuOpen(false)}
             className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
-              pathname === "/superadmin/activity"
-                ? "bg-white/10 text-white shadow-sm ring-1 ring-white/10"
-                : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+              pathname === "/superadmin/logs"
+                ? "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
-            <Activity className={`h-4 w-4 transition-colors ${pathname === "/superadmin/activity" ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+            <Activity className={`h-4 w-4 transition-colors ${pathname === "/superadmin/logs" ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"}`} />
             <span>Activity Logs</span>
           </Link>
           <Link
@@ -235,27 +222,27 @@ export default function SuperAdminLayout({
             onClick={() => setMobileMenuOpen(false)}
             className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
               pathname === "/superadmin/settings"
-                ? "bg-white/10 text-white shadow-sm ring-1 ring-white/10"
-                : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                ? "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
-            <Settings className={`h-4 w-4 transition-colors ${pathname === "/superadmin/settings" ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+            <Settings className={`h-4 w-4 transition-colors ${pathname === "/superadmin/settings" ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"}`} />
             <span>Settings</span>
           </Link>
         </nav>
 
-        <div className="p-4 m-4 rounded-2xl bg-white/5 border border-white/10">
+        <div className="p-4 m-4 rounded-2xl bg-slate-50 border border-slate-200">
           <div className="flex items-center justify-between">
             <div className="truncate pr-3">
-              <div className="text-sm font-bold text-slate-200 truncate">Administrator</div>
-              <div className="text-[11px] text-slate-400 truncate mt-0.5">{userEmail}</div>
+              <div className="text-sm font-bold text-slate-900 truncate">Administrator</div>
+              <div className="text-xs text-slate-500 truncate">{userEmail}</div>
             </div>
-            <button
+            <button 
               onClick={handleSignOut}
-              className="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer group"
-              title="Sign out"
+              title="Sign Out"
+              className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0"
             >
-              <LogOut className="h-4 w-4 group-hover:scale-110 transition-transform" />
+              <LogOut className="h-4 w-4" />
             </button>
           </div>
         </div>
