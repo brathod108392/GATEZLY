@@ -19,7 +19,6 @@ import {
   LogOut,
   Bell,
   Search,
-  Loader2,
   Menu,
   X
 } from "lucide-react";
@@ -160,14 +159,16 @@ export default function ProtectedDashboardLayout({
   // Loading Screen while verifying session
   if (checkingAuth) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-center space-y-4">
-        <div className="h-12 w-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-xl shadow-blue-500/30 mb-6 relative z-10">
           <ShieldCheck className="h-7 w-7 text-white animate-pulse" />
         </div>
-        <div className="flex items-center space-x-2 text-xs font-semibold text-slate-600">
-          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-          <span>Verifying Gatezly Security Credentials...</span>
+        <div className="h-1.5 w-48 bg-slate-200 rounded-full overflow-hidden relative z-10">
+          <div className="h-full bg-blue-600 rounded-full animate-pulse w-full" />
         </div>
+        <p className="mt-4 text-sm font-medium text-slate-500 animate-pulse relative z-10">
+          Loading Gatezly Workspace...
+        </p>
       </div>
     );
   }
@@ -189,24 +190,28 @@ export default function ProtectedDashboardLayout({
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans selection:bg-blue-600 selection:text-white">
       {/* SIDEBAR (Desktop) */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-white border-r border-slate-200 shrink-0 sticky top-0 h-screen z-30 shadow-sm">
-        {/* Brand Logo */}
-        <div className="p-5 border-b border-slate-100 flex items-center space-x-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-blue-500 flex items-center justify-center shadow-md shadow-blue-600/25">
+      <aside className="hidden lg:flex lg:flex-col lg:w-[280px] bg-white border-r border-slate-100 shrink-0 sticky top-0 h-screen z-30">
+        {/* Brand Area */}
+        <div className="px-6 py-8 flex flex-col items-start gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-600/20">
             <ShieldCheck className="h-6 w-6 text-white" />
           </div>
-          <div className="truncate">
-            <div className="font-extrabold text-lg text-slate-900 tracking-tight leading-none truncate" title={society.name}>
+          <div>
+            <h2 className="font-bold text-lg text-slate-900 tracking-tight leading-none" title={society.name}>
               {society.name}
-            </div>
-            <span className="text-[10px] font-semibold text-blue-600 uppercase tracking-wider">
-              Powered by Gatezly
-            </span>
+            </h2>
+            <p className="text-[11px] font-medium text-slate-400 mt-1 uppercase tracking-widest">
+              Gatezly Portal
+            </p>
           </div>
         </div>
 
+        <div className="px-4 mb-2">
+          <div className="h-px w-full bg-slate-100" />
+        </div>
+
         {/* Navigation Items */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
           {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -218,30 +223,43 @@ export default function ProtectedDashboardLayout({
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
+                className={`group flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative ${
                   isActive
-                    ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600 shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100/80 hover:text-blue-600"
+                    ? "bg-blue-50 text-blue-700 shadow-sm"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 }`}
               >
-                <Icon className={`h-4 w-4 ${isActive ? "text-blue-600" : "text-slate-400"}`} />
+                {isActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-600 rounded-r-full" />
+                )}
+                <Icon className={`h-5 w-5 transition-colors duration-200 ${isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"}`} />
                 <span>{item.name}</span>
               </Link>
             );
           })}
         </nav>
 
-        {/* Sidebar Footer User Info */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50/50">
-          <div className="flex items-center justify-between">
-            <div className="truncate pr-2">
-              <div className="text-xs font-bold text-slate-800 truncate">Officer Account</div>
-              <div className="text-[10px] text-slate-500 truncate">{userEmail}</div>
+        {/* User Info Section */}
+        <div className="p-4 mt-auto">
+          <div className="h-px w-full bg-slate-100 mb-4" />
+          <div className="flex items-center justify-between bg-slate-50 rounded-2xl p-3 border border-slate-100/50 hover:bg-slate-100/50 transition-colors">
+            <div className="flex items-center space-x-3 truncate">
+              <div className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shrink-0 shadow-sm">
+                {userEmail.charAt(0).toUpperCase()}
+              </div>
+              <div className="truncate">
+                <div className="text-sm font-semibold text-slate-700 truncate">
+                  Admin
+                </div>
+                <div className="text-xs text-slate-500 truncate">
+                  {userEmail}
+                </div>
+              </div>
             </div>
             <button
               onClick={handleSignOut}
               title="Sign Out"
-              className="p-2 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 transition cursor-pointer shadow-xs"
+              className="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors ml-2 shrink-0"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -253,23 +271,37 @@ export default function ProtectedDashboardLayout({
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs"
+            className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm animate-in fade-in duration-300"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <div className="relative flex flex-col w-64 max-w-xs bg-white h-full z-10 shadow-xl">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center space-x-2 truncate">
-                <ShieldCheck className="h-6 w-6 text-blue-600 shrink-0" />
-                <span className="font-extrabold text-base text-slate-900 truncate">{society.name}</span>
+          <div className="relative flex flex-col w-[280px] bg-white h-full z-10 shadow-2xl animate-in slide-in-from-left duration-300">
+            <div className="px-6 py-8 flex flex-col items-start gap-4">
+              <div className="flex items-center justify-between w-full">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-600/20">
+                  <ShieldCheck className="h-5 w-5 text-white" />
+                </div>
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-              <button
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div>
+                <h2 className="font-bold text-lg text-slate-900 tracking-tight leading-none" title={society.name}>
+                  {society.name}
+                </h2>
+                <p className="text-[11px] font-medium text-slate-400 mt-1 uppercase tracking-widest">
+                  Gatezly Portal
+                </p>
+              </div>
             </div>
-            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+
+            <div className="px-4 mb-2">
+              <div className="h-px w-full bg-slate-100" />
+            </div>
+
+            <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
               {filteredNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive =
@@ -282,22 +314,26 @@ export default function ProtectedDashboardLayout({
                     key={item.name}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
+                    className={`group flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative ${
                       isActive
-                        ? "bg-blue-50 text-blue-600 font-bold border-l-4 border-blue-600"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-blue-600"
+                        ? "bg-blue-50 text-blue-700 shadow-sm"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                     }`}
                   >
-                    <Icon className={`h-4 w-4 ${isActive ? "text-blue-600" : "text-slate-400"}`} />
+                    {isActive && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-600 rounded-r-full" />
+                    )}
+                    <Icon className={`h-5 w-5 transition-colors duration-200 ${isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"}`} />
                     <span>{item.name}</span>
                   </Link>
                 );
               })}
             </nav>
-            <div className="p-4 border-t border-slate-100">
+            <div className="p-4 mt-auto">
+              <div className="h-px w-full bg-slate-100 mb-4" />
               <button
                 onClick={handleSignOut}
-                className="w-full flex items-center justify-center space-x-2 py-2 rounded-xl bg-red-50 text-red-600 border border-red-200 text-xs font-semibold"
+                className="w-full flex items-center justify-center space-x-2 py-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 transition-colors text-sm font-semibold"
               >
                 <LogOut className="h-4 w-4" />
                 <span>Sign Out</span>
@@ -310,15 +346,27 @@ export default function ProtectedDashboardLayout({
       {/* RIGHT MAIN AREA */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* HEADER BAR */}
-        <header className="sticky top-0 z-20 bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shadow-xs">
-          <div className="flex items-center space-x-3">
+        <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 sm:px-8 py-4 flex items-center justify-between shadow-sm">
+          {/* Mobile Header Layout */}
+          <div className="flex items-center lg:hidden w-full justify-between">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100"
+              className="p-2 -ml-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <h1 className="text-lg font-bold text-slate-900 capitalize">
+            <div className="font-bold text-slate-900 truncate px-4">
+              {society.name}
+            </div>
+            <button className="p-2 -mr-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors relative">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-blue-600 ring-2 ring-white" />
+            </button>
+          </div>
+
+          {/* Desktop Header Layout */}
+          <div className="hidden lg:flex items-center justify-between w-full">
+            <h1 className="text-xl font-bold text-slate-900 capitalize tracking-tight">
               {filteredNavItems.find(
                 (item) =>
                   item.href === `/s/${params.slug}/dashboard`
@@ -326,44 +374,42 @@ export default function ProtectedDashboardLayout({
                     : pathname.startsWith(item.href)
               )?.name || "Dashboard"}
             </h1>
-          </div>
 
-          <div className="flex items-center space-x-4">
-            {/* Search Bar */}
-            <div className="relative hidden md:block">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search residents, flats, passes..."
-                value={globalSearchQuery}
-                onChange={(e) => setGlobalSearchQuery(e.target.value)}
-                onKeyDown={handleGlobalSearch}
-                className="pl-9 pr-4 py-1.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white w-60 transition"
-              />
+            <div className="flex items-center space-x-6">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search everywhere..."
+                  value={globalSearchQuery}
+                  onChange={(e) => setGlobalSearchQuery(e.target.value)}
+                  onKeyDown={handleGlobalSearch}
+                  className="pl-10 pr-4 py-2 text-sm rounded-full bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white w-64 lg:w-80 transition-all duration-200"
+                />
+              </div>
+
+              <div className="flex items-center space-x-3 border-l border-slate-200 pl-6">
+                <button className="relative p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-blue-600 ring-2 ring-white" />
+                </button>
+                
+                <div className="text-sm font-medium text-slate-600">
+                  {userEmail}
+                </div>
+              </div>
             </div>
-
-            {/* Notifications */}
-            <button className="relative p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer">
-              <Bell className="h-4 w-4" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-blue-600 ring-2 ring-white" />
-            </button>
-
-            {/* Quick Logout Button */}
-            <button
-              onClick={handleSignOut}
-              className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-semibold transition cursor-pointer"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              <span>Sign Out</span>
-            </button>
           </div>
         </header>
 
         {/* MAIN BODY CONTENT */}
-        <main className="flex-1 p-6 sm:p-8 bg-slate-50">
-          <SocietyProvider society={society}>
-            {children}
-          </SocietyProvider>
+        <main className="flex-1 p-6 sm:p-8 bg-slate-50 overflow-x-hidden">
+          <div className="mx-auto max-w-7xl animate-in fade-in duration-500 slide-in-from-bottom-2">
+            <SocietyProvider society={society}>
+              {children}
+            </SocietyProvider>
+          </div>
         </main>
       </div>
     </div>

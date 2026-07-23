@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Gatezly Portal - Smart Gate & Society Management",
@@ -12,8 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="bg-slate-50 text-slate-900 antialiased min-h-screen selection:bg-blue-600 selection:text-white font-sans">
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans bg-slate-50 text-slate-900 antialiased min-h-screen selection:bg-blue-600 selection:text-white`}>
         {children}
       </body>
     </html>
