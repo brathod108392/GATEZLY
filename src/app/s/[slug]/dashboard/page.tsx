@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-export default function DashboardOverviewPage() {
+export default function DashboardOverviewPage({ params }: { params: { slug: string } }) {
   const [profile, setProfile] = useState<{ full_name: string; email: string; role: string } | null>(null);
 
   useEffect(() => {
@@ -42,14 +42,14 @@ export default function DashboardOverviewPage() {
   }, []);
 
   const sections = [
-    { title: "Residents", count: "348 Active", desc: "Registered society residents & owner directory", href: "/dashboard/residents", icon: Users, color: "bg-blue-600", lightBg: "bg-blue-50 text-blue-600 border-blue-200" },
-    { title: "Flats", count: "120 Units", desc: "Occupied, vacant & rented apartment units", href: "/dashboard/flats", icon: Building2, color: "bg-blue-700", lightBg: "bg-blue-50 text-blue-700 border-blue-200" },
-    { title: "Visitors", count: "42 Today", desc: "Real-time gate passes & visitor check-in logs", href: "/dashboard/visitors", icon: UserCheck, color: "bg-sky-600", lightBg: "bg-sky-50 text-sky-600 border-sky-200" },
-    { title: "Complaints", count: "3 Pending", desc: "Resident helpdesk tickets & resolution tracking", href: "/dashboard/complaints", icon: MessageSquareWarning, color: "bg-amber-500", lightBg: "bg-amber-50 text-amber-600 border-amber-200" },
-    { title: "Maintenance", count: "8 Due", desc: "Monthly maintenance dues & utility billing", href: "/dashboard/maintenance", icon: Wrench, color: "bg-emerald-600", lightBg: "bg-emerald-50 text-emerald-600 border-emerald-200" },
-    { title: "Notices", count: "5 Active", desc: "Society announcements & emergency circulars", href: "/dashboard/notices", icon: Megaphone, color: "bg-indigo-600", lightBg: "bg-indigo-50 text-indigo-600 border-indigo-200" },
-    { title: "Reports", count: "12 Reports", desc: "Gate traffic analytics & security audit logs", href: "/dashboard/reports", icon: BarChart3, color: "bg-blue-800", lightBg: "bg-blue-50 text-blue-800 border-blue-200" },
-    { title: "Settings", count: "Configured", desc: "Checkpoint rules, security policies & preferences", href: "/dashboard/settings", icon: Settings, color: "bg-slate-700", lightBg: "bg-slate-100 text-slate-700 border-slate-200" },
+    { title: "Users", count: "348 Active", desc: "Registered society residents, committee, and guards", href: `/s/${params?.slug}/dashboard/users`, icon: Users, color: "bg-blue-600", lightBg: "bg-blue-50 text-blue-600 border-blue-200" },
+    { title: "Flats", count: "120 Units", desc: "Occupied, vacant & rented apartment units", href: `/s/${params?.slug}/dashboard/flats`, icon: Building2, color: "bg-blue-700", lightBg: "bg-blue-50 text-blue-700 border-blue-200" },
+    { title: "Visitors", count: "42 Today", desc: "Real-time gate passes & visitor check-in logs", href: `/s/${params?.slug}/dashboard/visitors`, icon: UserCheck, color: "bg-sky-600", lightBg: "bg-sky-50 text-sky-600 border-sky-200" },
+    { title: "Complaints", count: "3 Pending", desc: "Resident helpdesk tickets & resolution tracking", href: `/s/${params?.slug}/dashboard/complaints`, icon: MessageSquareWarning, color: "bg-amber-500", lightBg: "bg-amber-50 text-amber-600 border-amber-200" },
+    { title: "Maintenance", count: "8 Due", desc: "Monthly maintenance dues & utility billing", href: `/s/${params?.slug}/dashboard/maintenance`, icon: Wrench, color: "bg-emerald-600", lightBg: "bg-emerald-50 text-emerald-600 border-emerald-200" },
+    { title: "Notices", count: "5 Active", desc: "Society announcements & emergency circulars", href: `/s/${params?.slug}/dashboard/notices`, icon: Megaphone, color: "bg-indigo-600", lightBg: "bg-indigo-50 text-indigo-600 border-indigo-200" },
+    { title: "Reports", count: "12 Reports", desc: "Gate traffic analytics & security audit logs", href: `/s/${params?.slug}/dashboard/reports`, icon: BarChart3, color: "bg-blue-800", lightBg: "bg-blue-50 text-blue-800 border-blue-200" },
+    { title: "Settings", count: "Configured", desc: "Checkpoint rules, security policies & preferences", href: `/s/${params?.slug}/dashboard/settings`, icon: Settings, color: "bg-slate-700", lightBg: "bg-slate-100 text-slate-700 border-slate-200" },
   ];
 
   return (
@@ -82,7 +82,7 @@ export default function DashboardOverviewPage() {
               </div>
               <div>
                 <div className="text-xs font-bold text-white uppercase tracking-wider">
-                  {profile?.role === "admin" ? "System Administrator" : profile?.role === "committee" ? "Committee Member" : "Resident"}
+                  {profile?.role === "superadmin" ? "Super Admin" : profile?.role === "admin" ? "System Administrator" : profile?.role === "committee" ? "Committee Member" : "Resident"}
                 </div>
                 <div className="text-[11px] text-blue-200 truncate max-w-[150px]">
                   {profile?.email}

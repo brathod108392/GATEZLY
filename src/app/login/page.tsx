@@ -46,7 +46,25 @@ export default function LoginPage() {
         // If they just clicked a password reset link, don't redirect to dashboard
         const hash = window.location.hash;
         if (!hash.includes("type=recovery")) {
-          router.push("/dashboard");
+          // Fetch profile to determine redirect
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role, society_id")
+            .eq("id", session.user.id)
+            .single();
+
+          if (profile?.role === 'superadmin') {
+            router.push("/superadmin");
+          } else if (profile?.society_id) {
+            const { data: society } = await supabase
+              .from("societies")
+              .select("slug")
+              .eq("id", profile.society_id)
+              .single();
+            if (society) {
+              router.push(`/s/${society.slug}/dashboard`);
+            }
+          }
         }
       }
 
@@ -95,21 +113,39 @@ export default function LoginPage() {
         // Ensure email & updated_at are set in profiles table on login
         const now = new Date().toISOString();
         const userEmail = (data.user.email || email).trim().toLowerCase();
-        await supabase.from("profiles").upsert(
-          {
-            id: data.user.id,
-            email: userEmail,
-            full_name: data.user.user_metadata?.full_name || fullName || "User",
-            role: data.user.user_metadata?.role || "committee",
-            updated_at: now,
-          },
-          { onConflict: "id" }
-        );
+        
+        // Fetch profile to determine redirect
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role, society_id")
+          .eq("id", data.user.id)
+          .single();
 
-        setMessage({ type: "success", text: "Authenticated successfully! Redirecting to Dashboard..." });
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 800);
+        if (profile) {
+          await supabase.from("profiles").update({ updated_at: now }).eq("id", data.user.id);
+          setMessage({ type: "success", text: "Authenticated successfully! Redirecting..." });
+          
+          setTimeout(async () => {
+            if (profile.role === 'superadmin') {
+              router.push("/superadmin");
+            } else if (profile.society_id) {
+              const { data: society } = await supabase
+                .from("societies")
+                .select("slug")
+                .eq("id", profile.society_id)
+                .single();
+              if (society) {
+                router.push(`/s/${society.slug}/dashboard`);
+              }
+            } else {
+              setMessage({ type: "error", text: "Account has no society assigned." });
+              setLoading(false);
+            }
+          }, 800);
+        } else {
+           setMessage({ type: "error", text: "Profile not found." });
+           setLoading(false);
+        }
       }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -119,89 +155,6 @@ export default function LoginPage() {
     }
   };
 
-  // Handle Sign Up & Profile Creation
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage(null);
-    setLoading(true);
-
-    try {
-      const cleanEmail = email.trim().toLowerCase();
-      const cleanName = fullName.trim();
-      const now = new Date().toISOString();
-
-      // 1. Register Auth user with role in metadata
-      const { data, error } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password,
-        options: {
-          data: {
-            full_name: cleanName,
-            role: role,
-          },
-        },
-      });
-
-      if (error) {
-        if (error.message.toLowerCase().includes("rate limit")) {
-          setMessage({
-            type: "error",
-            text: "Supabase Email Rate Limit Exceeded: Supabase caps confirmation emails to 3-4 per hour on default SMTP. QUICK FIX: Go to your Supabase Dashboard -> Authentication -> Providers -> Email, and toggle OFF 'Confirm email' to allow instant testing without email limits!",
-          });
-        } else if (error.message.toLowerCase().includes("already registered") || error.message.toLowerCase().includes("user already exists")) {
-          setMessage({
-            type: "error",
-            text: "This email is already registered. Please switch to 'Sign In' above.",
-          });
-        } else {
-          setMessage({ type: "error", text: error.message });
-        }
-        setLoading(false);
-        return;
-      }
-
-      // 2. Insert/Upsert into 'profiles' table with guaranteed email and updated_at
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert(
-            {
-              id: data.user.id,
-              email: cleanEmail,
-              full_name: cleanName,
-              role: role,
-              created_at: now,
-              updated_at: now,
-            },
-            { onConflict: "id" }
-          );
-
-        if (profileError) {
-          console.error("Profiles table upsert error:", profileError.message);
-        }
-      }
-
-      if (data.user && !data.session) {
-        setMessage({
-          type: "success",
-          text: `Account created for ${cleanName} (${role.toUpperCase()})! Check your email to confirm registration or sign in.`,
-        });
-      } else if (data.session) {
-        setMessage({
-          type: "success",
-          text: `Account & ${role.toUpperCase()} profile created! Redirecting to Dashboard...`,
-        });
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 800);
-      }
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "Failed to create account.";
-      setMessage({ type: "error", text: errorMsg });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Handle Forgot Password
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -282,36 +235,14 @@ export default function LoginPage() {
 
         {/* Blue & White Card Panel */}
         <div className="bg-white rounded-3xl p-7 border border-slate-200 shadow-xl space-y-6">
-          {/* Top Mode Toggle (Login vs Sign Up) */}
-          {(mode === "login" || mode === "signup") ? (
-            <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 border border-slate-200 text-xs">
+          {/* Top Mode Toggle (Login) */}
+          {mode === "login" ? (
+            <div className="grid grid-cols-1 p-1 rounded-xl bg-slate-100 border border-slate-200 text-xs">
               <button
                 type="button"
-                onClick={() => {
-                  setMode("login");
-                  setMessage(null);
-                }}
-                className={`py-2 rounded-lg font-bold transition cursor-pointer ${
-                  mode === "login"
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
+                className="py-2 rounded-lg font-bold transition bg-blue-600 text-white shadow-sm"
               >
                 Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("signup");
-                  setMessage(null);
-                }}
-                className={`py-2 rounded-lg font-bold transition cursor-pointer ${
-                  mode === "signup"
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Create Account
               </button>
             </div>
           ) : (
@@ -442,138 +373,7 @@ export default function LoginPage() {
             </form>
           )}
 
-          {/* SIGN UP FORM WITH ROLE SELECTION */}
-          {mode === "signup" && (
-            <form onSubmit={handleSignUp} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Officer Alex Rivera"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
-                />
-              </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="email"
-                    required
-                    placeholder="officer@gatezly.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    minLength={6}
-                    placeholder="Min 6 characters"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* ROLE SELECTION CARDS */}
-              <div className="space-y-2 pt-1">
-                <label className="block text-xs font-bold text-slate-700">
-                  Select System Role
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Committee Role Card */}
-                  <div
-                    onClick={() => setRole("committee")}
-                    className={`p-3 rounded-xl border transition cursor-pointer flex flex-col justify-between space-y-2 relative ${
-                      role === "committee"
-                        ? "bg-blue-50 border-blue-600 text-slate-900 shadow-sm"
-                        : "bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300"
-                    }`}
-                  >
-                    {role === "committee" && (
-                      <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-blue-600 flex items-center justify-center text-white">
-                        <Check className="h-2.5 w-2.5" />
-                      </div>
-                    )}
-                    <div className="flex items-center space-x-2">
-                      <Users className={`h-4 w-4 ${role === "committee" ? "text-blue-600" : "text-slate-400"}`} />
-                      <span className="font-extrabold text-xs">Committee</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 leading-tight">
-                      Issue passes, verify guests, view entry logs.
-                    </p>
-                  </div>
-
-                  {/* Admin Role Card */}
-                  <div
-                    onClick={() => setRole("admin")}
-                    className={`p-3 rounded-xl border transition cursor-pointer flex flex-col justify-between space-y-2 relative ${
-                      role === "admin"
-                        ? "bg-indigo-50 border-indigo-600 text-slate-900 shadow-sm"
-                        : "bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300"
-                    }`}
-                  >
-                    {role === "admin" && (
-                      <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-indigo-600 flex items-center justify-center text-white">
-                        <Check className="h-2.5 w-2.5" />
-                      </div>
-                    )}
-                    <div className="flex items-center space-x-2">
-                      <ShieldAlert className={`h-4 w-4 ${role === "admin" ? "text-indigo-600" : "text-slate-400"}`} />
-                      <span className="font-extrabold text-xs">Admin</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 leading-tight">
-                      Full checkpoint rules, alerts, and user profiles.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/25 flex items-center justify-center space-x-2 transition cursor-pointer disabled:opacity-50 mt-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Creating Profile...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Create {role === "admin" ? "Admin" : "Committee"} Account</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </button>
-            </form>
-          )}
 
           {/* FORGOT PASSWORD FORM */}
           {mode === "forgot" && (

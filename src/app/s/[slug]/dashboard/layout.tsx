@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { SocietyProvider } from "@/components/providers/society-provider";
 import {
   ShieldCheck,
   Users,
@@ -31,7 +32,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Residents", href: "/dashboard/residents", icon: Users },
+  { name: "Users", href: "/dashboard/users", icon: Users },
   { name: "Flats", href: "/dashboard/flats", icon: Building2 },
   { name: "Visitors", href: "/dashboard/visitors", icon: UserCheck },
   { name: "Complaints", href: "/dashboard/complaints", icon: MessageSquareWarning },
@@ -43,8 +44,10 @@ const navItems: NavItem[] = [
 
 export default function ProtectedDashboardLayout({
   children,
+  params
 }: {
   children: React.ReactNode;
+  params: { slug: string };
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -54,43 +57,73 @@ export default function ProtectedDashboardLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
   const [globalSearchQuery, setGlobalSearchQuery] = useState("");
+  const [society, setSociety] = useState<any>(null);
 
   const handleGlobalSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && globalSearchQuery.trim()) {
-      router.push(`/dashboard/residents?search=${encodeURIComponent(globalSearchQuery.trim())}`);
+      router.push(`/s/${params.slug}/dashboard/users?search=${encodeURIComponent(globalSearchQuery.trim())}`);
+      setGlobalSearchQuery("");
     }
   };
 
   useEffect(() => {
-    // 1. Initial Session Check
     const verifyAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           setAuthenticated(false);
           router.push("/login");
-        } else {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("is_active, society_id")
-            .eq("id", session.user.id)
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_active, society_id, role")
+          .eq("id", session.user.id)
+          .single();
+
+        if (profile && profile.is_active === false) {
+          await supabase.auth.signOut();
+          setAuthenticated(false);
+          router.push("/login?error=account_deactivated");
+          return;
+        }
+
+        let soc = null;
+
+        if (profile?.role === 'superadmin') {
+          // Superadmins can view any society portal
+          const { data } = await supabase
+            .from('societies')
+            .select('*')
+            .eq('slug', params.slug)
+            .single();
+            
+          if (!data) {
+            router.push('/superadmin');
+            return;
+          }
+          soc = data;
+        } else if (profile && profile.society_id) {
+          const { data } = await supabase
+            .from('societies')
+            .select('*')
+            .eq('id', profile.society_id)
             .single();
 
-          if (profile && profile.is_active === false) {
-            await supabase.auth.signOut();
-            setAuthenticated(false);
-            router.push("/login?error=account_deactivated");
+          if (!data || data.slug !== params.slug) {
+            router.push(data ? `/s/${data.slug}/dashboard` : "/login");
             return;
           }
-
-          if (profile && !profile.society_id && pathname !== "/dashboard/onboarding") {
-            router.push("/dashboard/onboarding");
-            return;
-          }
-
-          setAuthenticated(true);
-          setUserEmail(session.user.email || "");
+          soc = data;
+        } else {
+          router.push("/login");
+          return;
         }
+
+        setSociety(soc);
+        setAuthenticated(true);
+        setUserEmail(session.user.email || "");
       } catch (error) {
         console.error("Auth verification error:", error);
         setAuthenticated(false);
@@ -102,42 +135,21 @@ export default function ProtectedDashboardLayout({
 
     verifyAuth();
 
-    // 2. Auth State Change Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         if (!session) {
           setAuthenticated(false);
           router.push("/login");
         } else {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("is_active, society_id")
-            .eq("id", session.user.id)
-            .single();
-
-          if (profile && profile.is_active === false) {
-            await supabase.auth.signOut();
-            setAuthenticated(false);
-            router.push("/login?error=account_deactivated");
-            return;
-          }
-
-          if (profile && !profile.society_id && pathname !== "/dashboard/onboarding") {
-            router.push("/dashboard/onboarding");
-            return;
-          }
-
-          setAuthenticated(true);
-          setUserEmail(session.user.email || "");
+          verifyAuth();
         }
-        setCheckingAuth(false);
       }
     );
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, params.slug]);
 
   // Handle Logout
   const handleSignOut = async () => {
@@ -160,40 +172,46 @@ export default function ProtectedDashboardLayout({
     );
   }
 
-  if (!authenticated) {
+  if (!authenticated || !society) {
     return null;
   }
 
-  // Hide sidebar and header on onboarding page
-  const isOnboarding = pathname === "/dashboard/onboarding";
+  // Filter Nav items based on society modules
+  const filteredNavItems = navItems.map(item => ({
+    ...item,
+    href: `/s/${params.slug}${item.href === '/dashboard' ? '/dashboard' : item.href}`
+  })).filter(item => {
+    if (item.name === "Overview" || item.name === "Settings" || item.name === "Users") return true;
+    const moduleKey = item.name.toLowerCase();
+    return society.modules?.[moduleKey] !== false;
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans selection:bg-blue-600 selection:text-white">
       {/* SIDEBAR (Desktop) */}
-      {!isOnboarding && (
       <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-white border-r border-slate-200 shrink-0 sticky top-0 h-screen z-30 shadow-sm">
         {/* Brand Logo */}
         <div className="p-5 border-b border-slate-100 flex items-center space-x-3">
           <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-blue-500 flex items-center justify-center shadow-md shadow-blue-600/25">
             <ShieldCheck className="h-6 w-6 text-white" />
           </div>
-          <div>
-            <div className="font-extrabold text-lg text-slate-900 tracking-tight leading-none">
-              GATEZLY
+          <div className="truncate">
+            <div className="font-extrabold text-lg text-slate-900 tracking-tight leading-none truncate" title={society.name}>
+              {society.name}
             </div>
             <span className="text-[10px] font-semibold text-blue-600 uppercase tracking-wider">
-              Management Portal
+              Powered by Gatezly
             </span>
           </div>
         </div>
 
         {/* Navigation Items */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive =
-              item.href === "/dashboard"
-                ? pathname === "/dashboard"
+              item.href === `/s/${params.slug}/dashboard`
+                ? pathname === `/s/${params.slug}/dashboard`
                 : pathname.startsWith(item.href);
 
             return (
@@ -230,10 +248,9 @@ export default function ProtectedDashboardLayout({
           </div>
         </div>
       </aside>
-      )}
 
       {/* MOBILE SIDEBAR MODAL */}
-      {mobileMenuOpen && !isOnboarding && (
+      {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div
             className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs"
@@ -241,9 +258,9 @@ export default function ProtectedDashboardLayout({
           />
           <div className="relative flex flex-col w-64 max-w-xs bg-white h-full z-10 shadow-xl">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <ShieldCheck className="h-6 w-6 text-blue-600" />
-                <span className="font-extrabold text-base text-slate-900">GATEZLY</span>
+              <div className="flex items-center space-x-2 truncate">
+                <ShieldCheck className="h-6 w-6 text-blue-600 shrink-0" />
+                <span className="font-extrabold text-base text-slate-900 truncate">{society.name}</span>
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}
@@ -253,11 +270,11 @@ export default function ProtectedDashboardLayout({
               </button>
             </div>
             <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-              {navItems.map((item) => {
+              {filteredNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive =
-                  item.href === "/dashboard"
-                    ? pathname === "/dashboard"
+                  item.href === `/s/${params.slug}/dashboard`
+                    ? pathname === `/s/${params.slug}/dashboard`
                     : pathname.startsWith(item.href);
 
                 return (
@@ -293,7 +310,6 @@ export default function ProtectedDashboardLayout({
       {/* RIGHT MAIN AREA */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* HEADER BAR */}
-        {!isOnboarding && (
         <header className="sticky top-0 z-20 bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shadow-xs">
           <div className="flex items-center space-x-3">
             <button
@@ -303,10 +319,10 @@ export default function ProtectedDashboardLayout({
               <Menu className="h-5 w-5" />
             </button>
             <h1 className="text-lg font-bold text-slate-900 capitalize">
-              {navItems.find(
+              {filteredNavItems.find(
                 (item) =>
-                  item.href === "/dashboard"
-                    ? pathname === "/dashboard"
+                  item.href === `/s/${params.slug}/dashboard`
+                    ? pathname === `/s/${params.slug}/dashboard`
                     : pathname.startsWith(item.href)
               )?.name || "Dashboard"}
             </h1>
@@ -342,10 +358,13 @@ export default function ProtectedDashboardLayout({
             </button>
           </div>
         </header>
-        )}
 
         {/* MAIN BODY CONTENT */}
-        <main className="flex-1 p-6 sm:p-8 bg-slate-50">{children}</main>
+        <main className="flex-1 p-6 sm:p-8 bg-slate-50">
+          <SocietyProvider society={society}>
+            {children}
+          </SocietyProvider>
+        </main>
       </div>
     </div>
   );

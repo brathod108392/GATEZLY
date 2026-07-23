@@ -4,8 +4,8 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Protect any route under /dashboard
-  if (pathname.startsWith("/dashboard")) {
+  // Protect routes under /s and /superadmin
+  if (pathname.startsWith("/s/") || pathname.startsWith("/superadmin")) {
     // Check if auth token cookie or sb auth session exists
     const hasAuthCookie =
       request.cookies.has("sb-access-token") ||
@@ -26,5 +26,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/s/:path*", "/superadmin/:path*"],
 };

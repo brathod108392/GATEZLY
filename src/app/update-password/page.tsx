@@ -51,7 +51,7 @@ export default function UpdatePasswordPage() {
       }
 
       // Successfully updated password, head to dashboard
-      router.push("/dashboard");
+      router.push("/login");
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);

@@ -59,7 +59,7 @@ export default function LandingPage() {
   }, [router]);
 
   const features = [
-    { title: "Residents Directory", desc: "Manage resident profiles, owner/tenant records, and family contacts.", icon: Users, href: "/dashboard/residents", color: "bg-blue-600" },
+    { title: "User Management", desc: "Manage resident profiles, owner/tenant records, and family contacts.", icon: Users, href: "/dashboard/users", color: "bg-blue-600" },
     { title: "Flats & Wings", desc: "Track occupied, vacant, and rented apartments across all blocks.", icon: Building2, href: "/dashboard/flats", color: "bg-blue-700" },
     { title: "Visitor Entry & Fast Pass", desc: "Generate instant QR digital visitor passes and scan ANPR vehicles.", icon: UserCheck, href: "/dashboard/visitors", color: "bg-sky-600" },
     { title: "Complaints & Helpdesk", desc: "Streamline resident ticket submissions, staff assignment, and resolution.", icon: MessageSquareWarning, href: "/dashboard/complaints", color: "bg-amber-500" },

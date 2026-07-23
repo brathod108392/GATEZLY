@@ -1,10 +1,19 @@
--- Multi-Tenant SaaS Schema
+-- ==========================================
+-- Gatezly Multi-Tenant SaaS Schema
+-- ==========================================
 
--- 1. Create Societies Table
+-- 1. Create Societies Table (with scalability features)
 create table if not exists public.societies (
   id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
   name text not null,
   address text,
+  logo_url text,
+  subscription_plan text default 'basic',
+  custom_domain text unique,
+  modules jsonb default '{"visitors": true, "complaints": true, "notices": true, "maintenance": true}',
+  settings jsonb default '{}',
+  is_active boolean default true,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -15,38 +24,63 @@ create table if not exists public.profiles (
   email text not null,
   full_name text,
   phone text,
-  role text check (role in ('admin', 'committee', 'resident')) default 'resident',
+  role text check (role in ('superadmin', 'admin', 'committee', 'resident', 'guard')) default 'resident',
   is_active boolean default true,
   expo_push_token text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  -- Constraint: If role is not superadmin, they MUST belong to a society. 
+  -- Superadmin MUST NOT belong to a society.
+  CONSTRAINT check_society_assignment CHECK (
+    (role = 'superadmin' AND society_id IS NULL) OR 
+    (role != 'superadmin' AND society_id IS NOT NULL)
+  )
 );
 
--- Enable Row Level Security (RLS)
+-- 3. Enable Row Level Security (RLS)
 alter table public.societies enable row level security;
 alter table public.profiles enable row level security;
 
--- Societies policies (Only members of the society can view it)
+-- Security Definer Functions to avoid infinite recursion
+CREATE OR REPLACE FUNCTION public.auth_user_role()
+RETURNS text AS $$
+  SELECT role FROM public.profiles WHERE id = auth.uid();
+$$ LANGUAGE sql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.auth_user_society_id()
+RETURNS uuid AS $$
+  SELECT society_id FROM public.profiles WHERE id = auth.uid();
+$$ LANGUAGE sql SECURITY DEFINER;
+
+-- Societies policies
+create policy "Super Admins have full access to societies"
+  on public.societies for all
+  to authenticated
+  using (public.auth_user_role() = 'superadmin');
+
 create policy "Users can view their own society"
   on public.societies for select
   to authenticated
-  using (id = (select society_id from public.profiles where id = auth.uid()));
+  using (id = public.auth_user_society_id());
 
-create policy "Admins can insert society"
-  on public.societies for insert
+create policy "Admins can update their own society"
+  on public.societies for update
   to authenticated
-  with check (true);
+  using (
+    id = public.auth_user_society_id() 
+    AND public.auth_user_role() = 'admin'
+  );
 
 -- Profiles policies
+create policy "Super Admins have full access to profiles"
+  on public.profiles for all
+  to authenticated
+  using (public.auth_user_role() = 'superadmin');
+
 create policy "Authenticated users can view profiles in their society"
   on public.profiles for select
   to authenticated
-  using (society_id = (select society_id from public.profiles where id = auth.uid()) OR id = auth.uid());
-
-create policy "Users can insert own profile"
-  on public.profiles for insert
-  to authenticated, anon
-  with check (true);
+  using (society_id = public.auth_user_society_id() OR id = auth.uid());
 
 create policy "Users can update own profile"
   on public.profiles for update
@@ -57,33 +91,62 @@ create policy "Admins can update profiles in their society"
   on public.profiles for update
   to authenticated
   using (
-    (select role from public.profiles where id = auth.uid()) in ('admin', 'committee')
-    AND society_id = (select society_id from public.profiles where id = auth.uid())
+    public.auth_user_role() in ('admin', 'committee')
+    AND society_id = public.auth_user_society_id()
   );
+
+create policy "Admins can insert profiles in their society"
+  on public.profiles for insert
+  to authenticated
+  with check (
+    public.auth_user_role() in ('admin')
+    AND society_id = public.auth_user_society_id()
+  );
+
 
 -- Automatic handle_new_user trigger
 create or replace function public.handle_new_user()
 returns trigger as $$
-begin
+DECLARE
+  v_role text;
+  v_society_id uuid;
+BEGIN
+  -- Handle the initial Super Admin Bootstrap
+  IF new.email = 'bhavik191989@gmail.com' THEN
+    v_role := 'superadmin';
+    v_society_id := NULL;
+  ELSE
+    -- For everyone else, they MUST be invited with meta_data specifying role and society_id.
+    v_role := new.raw_user_meta_data->>'role';
+    v_society_id := (new.raw_user_meta_data->>'society_id')::uuid;
+
+    -- If no role is provided, default to resident
+    IF v_role IS NULL THEN
+      v_role := 'resident';
+    END IF;
+
+    -- If a non-superadmin is trying to sign up without an invite/society_id, reject them.
+    IF v_role != 'superadmin' AND v_society_id IS NULL THEN
+      RAISE EXCEPTION 'Non-superadmin users must be invited to a specific society.';
+    END IF;
+    
+    -- If a superadmin invite was sent, ensure society_id is null
+    IF v_role = 'superadmin' THEN
+      v_society_id := NULL;
+    END IF;
+  END IF;
+
   insert into public.profiles (id, email, full_name, phone, role, society_id, created_at, updated_at)
   values (
     new.id,
     new.email,
-    coalesce(new.raw_user_meta_data->>'full_name', 'User'),
+    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
     new.raw_user_meta_data->>'phone',
-    coalesce(new.raw_user_meta_data->>'role', 'admin'), -- First user without invite defaults to admin for onboarding
-    (new.raw_user_meta_data->>'society_id')::uuid,
+    v_role,
+    v_society_id,
     now(),
     now()
-  )
-  on conflict (id) do update
-  set
-    email = excluded.email,
-    full_name = excluded.full_name,
-    phone = excluded.phone,
-    role = excluded.role,
-    society_id = COALESCE(public.profiles.society_id, excluded.society_id),
-    updated_at = now();
+  );
   return new;
 end;
 $$ language plpgsql security definer;
@@ -93,15 +156,8 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- Create Helper Function for checking role
-CREATE OR REPLACE FUNCTION public.get_user_role()
-RETURNS text AS $$
-BEGIN
-  RETURN (SELECT role FROM public.profiles WHERE id = auth.uid());
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 3. Create Towers Table
+-- 4. Create Towers Table
 create table if not exists public.towers (
   id uuid primary key default gen_random_uuid(),
   society_id uuid references public.societies(id) on delete cascade not null,
@@ -110,7 +166,7 @@ create table if not exists public.towers (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 4. Create Flats Table
+-- 5. Create Flats Table
 create table if not exists public.flats (
   id uuid primary key default gen_random_uuid(),
   society_id uuid references public.societies(id) on delete cascade not null,
@@ -122,7 +178,7 @@ create table if not exists public.flats (
   unique(society_id, tower_id, number)
 );
 
--- 5. Create Flat Residents mapping table
+-- 6. Create Flat Residents mapping table
 create table if not exists public.flat_residents (
   id uuid primary key default gen_random_uuid(),
   society_id uuid references public.societies(id) on delete cascade not null,
@@ -134,7 +190,7 @@ create table if not exists public.flat_residents (
   unique(flat_id, resident_id)
 );
 
--- 6. Create Notices Table
+-- 7. Create Notices Table
 create table if not exists public.notices (
   id uuid primary key default gen_random_uuid(),
   society_id uuid references public.societies(id) on delete cascade not null,
@@ -142,13 +198,16 @@ create table if not exists public.notices (
   body text not null,
   is_emergency boolean default false,
   author_id uuid references public.profiles(id) on delete set null,
+  category text default 'General',
+  pinned boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 7. Database Triggers for Multi-Tenancy (Auto-inject society_id)
+-- 8. Database Triggers for Multi-Tenancy (Auto-inject society_id)
 CREATE OR REPLACE FUNCTION public.set_tenant_id()
 RETURNS TRIGGER AS $$
 BEGIN
+  -- SuperAdmins shouldn't be inserting directly into these tables without explicitly defining society_id.
   IF NEW.society_id IS NULL THEN
     NEW.society_id := (SELECT society_id FROM public.profiles WHERE id = auth.uid());
   END IF;
@@ -167,15 +226,27 @@ alter table public.flats enable row level security;
 alter table public.flat_residents enable row level security;
 alter table public.notices enable row level security;
 
--- Tenant Isolation Policies
+-- Tenant Isolation Policies (Super Admins bypass this)
 create policy "Tenant isolation for towers" on public.towers for all to authenticated 
-using (society_id = (select society_id from public.profiles where id = auth.uid()));
+using (
+  society_id = public.auth_user_society_id() OR
+  public.auth_user_role() = 'superadmin'
+);
 
 create policy "Tenant isolation for flats" on public.flats for all to authenticated 
-using (society_id = (select society_id from public.profiles where id = auth.uid()));
+using (
+  society_id = public.auth_user_society_id() OR
+  public.auth_user_role() = 'superadmin'
+);
 
 create policy "Tenant isolation for flat_residents" on public.flat_residents for all to authenticated 
-using (society_id = (select society_id from public.profiles where id = auth.uid()));
+using (
+  society_id = public.auth_user_society_id() OR
+  public.auth_user_role() = 'superadmin'
+);
 
 create policy "Tenant isolation for notices" on public.notices for all to authenticated 
-using (society_id = (select society_id from public.profiles where id = auth.uid()));
+using (
+  society_id = public.auth_user_society_id() OR
+  public.auth_user_role() = 'superadmin'
+);

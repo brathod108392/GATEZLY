@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Building2, Plus, Loader2, X, LayoutGrid, List, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { useSociety } from "@/components/providers/society-provider";
 
 interface Tower {
   id: string;
@@ -35,6 +36,7 @@ interface FlatResident {
 }
 
 export default function FlatsPage() {
+  const { society } = useSociety();
   const [towers, setTowers] = useState<Tower[]>([]);
   const [flats, setFlats] = useState<Flat[]>([]);
   const [flatResidents, setFlatResidents] = useState<Record<string, FlatResident[]>>({});
@@ -77,14 +79,14 @@ export default function FlatsPage() {
     }
 
     // Fetch Towers
-    const { data: towersData } = await supabase.from("towers").select("*").order("name");
+    const { data: towersData } = await supabase.from("towers").select("*").eq("society_id", society.id).order("name");
     setTowers(towersData || []);
 
     // Fetch Flats
     const { data: flatsData } = await supabase.from("flats").select(`
       *,
-      towers ( name )
-    `).order("number");
+      towers!inner ( name, society_id )
+    `).eq("towers.society_id", society.id).order("number");
     
     if (flatsData) {
       const sortedFlats = flatsData.sort((a, b) => 
@@ -112,7 +114,7 @@ export default function FlatsPage() {
   };
 
   const fetchAvailableResidents = async () => {
-    const { data } = await supabase.from("profiles").select("id, full_name, email, role").eq("role", "resident");
+    const { data } = await supabase.from("profiles").select("id, full_name, email, role").eq("society_id", society.id).in("role", ["resident", "committee", "guard"]);
     setAvailableResidents(data || []);
   };
 
@@ -121,7 +123,7 @@ export default function FlatsPage() {
     setActionLoading(true);
     setActionError("");
     
-    const { error } = await supabase.from("towers").insert([{ name: towerName, structure_type: towerType }]);
+    const { error } = await supabase.from("towers").insert([{ name: towerName, structure_type: towerType, society_id: society.id }]);
     
     if (error) setActionError(error.message);
     else {

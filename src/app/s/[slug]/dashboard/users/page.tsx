@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Users, Plus, Loader2, Search, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useSearchParams } from "next/navigation";
+import { useSociety } from "@/components/providers/society-provider";
 
 interface Resident {
   id: string;
@@ -11,6 +12,7 @@ interface Resident {
   email: string;
   phone: string | null;
   role: string;
+  registration_status?: string;
   created_at: string;
   is_active?: boolean;
   flat_residents?: {
@@ -30,7 +32,8 @@ interface VacantFlat {
   towers: { name: string } | null;
 }
 
-export default function ResidentsPage() {
+export default function UsersPage() {
+  const { society } = useSociety();
   const [residents, setResidents] = useState<Resident[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,17 +46,19 @@ export default function ResidentsPage() {
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get("search") || "";
   const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [roleFilter, setRoleFilter] = useState<"all" | "resident" | "guard" | "committee">("all");
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
+    role: "resident",
   });
 
   // Edit State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
-  const [editFormData, setEditFormData] = useState({ name: "", phone: "" });
+  const [editFormData, setEditFormData] = useState({ name: "", phone: "", role: "resident" });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
   const [editSuccess, setEditSuccess] = useState("");
@@ -94,7 +99,8 @@ export default function ResidentsPage() {
           )
         )
       `)
-      .eq("role", "resident")
+      .eq("society_id", society.id)
+      .in("role", ["resident", "guard", "committee"])
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -105,7 +111,8 @@ export default function ResidentsPage() {
     setLoading(false);
   };
 
-  const filteredResidents = residents.filter(r => {
+  const filteredUsers = residents.filter(r => {
+    if (roleFilter !== "all" && r.role !== roleFilter) return false;
     if (!searchQuery) return true;
     const search = searchQuery.toLowerCase();
     const nameMatch = r.full_name?.toLowerCase().includes(search);
@@ -133,23 +140,23 @@ export default function ResidentsPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
 
-      const res = await fetch("/api/residents/invite", {
+      const res = await fetch("/api/invite", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session?.access_token}`
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, target_society_id: society.id }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to invite resident");
+        throw new Error(data.error || "Failed to invite user");
       }
 
-      setInviteSuccess("Resident invited successfully!");
-      setFormData({ name: "", email: "", phone: "" });
+      setInviteSuccess("User invited successfully!");
+      setFormData({ name: "", email: "", phone: "", role: "resident" });
       fetchResidents(); // Refresh list
       
       // Close modal after short delay
@@ -173,7 +180,8 @@ export default function ResidentsPage() {
     setSelectedResident(resident);
     setEditFormData({
       name: resident.full_name || "",
-      phone: resident.phone || ""
+      phone: resident.phone || "",
+      role: resident.role || "resident",
     });
     setEditError("");
     setEditSuccess("");
@@ -184,7 +192,8 @@ export default function ResidentsPage() {
       // Fetch available flats for reassignment
       const { data, error } = await supabase
         .from("flats")
-        .select("id, number, property_type, towers(name)")
+        .select("id, number, property_type, towers!inner(name, society_id)")
+        .eq("towers.society_id", society.id)
         .order("number");
         
       if (!error && data) {
@@ -202,7 +211,7 @@ export default function ResidentsPage() {
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/residents/${selectedResident.id}`, {
+      const res = await fetch(`/api/users/${selectedResident.id}`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
@@ -210,14 +219,15 @@ export default function ResidentsPage() {
         },
         body: JSON.stringify({
           full_name: editFormData.name,
-          phone: editFormData.phone
+          phone: editFormData.phone,
+          role: editFormData.role
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to update resident");
+      if (!res.ok) throw new Error(data.error || "Failed to update user");
 
-      setEditSuccess("Resident updated successfully!");
+      setEditSuccess("User updated successfully!");
       fetchResidents();
       setTimeout(() => {
         setIsEditModalOpen(false);
@@ -232,14 +242,14 @@ export default function ResidentsPage() {
 
   const handleDeactivate = async () => {
     if (!selectedResident) return;
-    if (!confirm(`Are you sure you want to deactivate ${selectedResident.full_name}? They will lose access to the app and be removed from their flat.`)) return;
+    if (!confirm(`Are you sure you want to deactivate ${selectedResident.full_name}? They will lose access to the app.`)) return;
     
     setEditLoading(true);
     setEditError("");
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/residents/${selectedResident.id}`, {
+      const res = await fetch(`/api/users/${selectedResident.id}`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
@@ -249,9 +259,9 @@ export default function ResidentsPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to deactivate resident");
+      if (!res.ok) throw new Error(data.error || "Failed to deactivate user");
 
-      setEditSuccess("Resident deactivated successfully.");
+      setEditSuccess("User deactivated successfully.");
       fetchResidents();
       setTimeout(() => {
         setIsEditModalOpen(false);
@@ -273,7 +283,7 @@ export default function ResidentsPage() {
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/residents/${selectedResident.id}`, {
+      const res = await fetch(`/api/users/${selectedResident.id}`, {
         method: "DELETE",
         headers: { 
           "Authorization": `Bearer ${session?.access_token}`
@@ -281,9 +291,9 @@ export default function ResidentsPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to delete resident");
+      if (!res.ok) throw new Error(data.error || "Failed to delete user");
 
-      setEditSuccess("Resident permanently deleted.");
+      setEditSuccess("User permanently deleted.");
       fetchResidents();
       setTimeout(() => {
         setIsEditModalOpen(false);
@@ -315,7 +325,7 @@ export default function ResidentsPage() {
       if (assignError) throw assignError;
 
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/residents/${selectedResident.id}`, {
+      const res = await fetch(`/api/users/${selectedResident.id}`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
@@ -323,9 +333,9 @@ export default function ResidentsPage() {
         },
         body: JSON.stringify({ is_active: true }),
       });
-      if (!res.ok) throw new Error("Failed to activate resident profile");
+      if (!res.ok) throw new Error("Failed to activate user profile");
 
-      setEditSuccess("Resident reassigned and activated successfully!");
+      setEditSuccess("User reassigned and activated successfully!");
       fetchResidents();
       setTimeout(() => {
         setIsEditModalOpen(false);
@@ -355,7 +365,7 @@ export default function ResidentsPage() {
         </div>
         <h2 className="text-xl font-bold text-slate-900 mb-2">Access Denied</h2>
         <p className="text-slate-500 text-sm max-w-sm mx-auto">
-          The resident directory is only accessible to Committee members and Administrators.
+          User management is only accessible to Committee members and Administrators.
         </p>
       </div>
     );
@@ -367,10 +377,10 @@ export default function ResidentsPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 flex items-center space-x-2">
             <Users className="h-6 w-6 text-blue-600" />
-            <span>Residents</span>
+            <span>Users</span>
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Manage society residents, family members, and tenant profiles.
+            Manage society residents, family members, committee, and guards.
           </p>
         </div>
         <button 
@@ -378,19 +388,27 @@ export default function ResidentsPage() {
           className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md shadow-blue-600/20 transition cursor-pointer"
         >
           <Plus className="h-4 w-4" />
-          <span>Add Resident</span>
+          <span>Add User</span>
         </button>
       </div>
 
-      {/* Residents Table */}
+      {/* Users Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+        {/* Role Filter Tabs */}
+        <div className="flex items-center overflow-x-auto border-b border-slate-200 bg-slate-50/50 p-2 space-x-2">
+          <button onClick={() => setRoleFilter("all")} className={`px-4 py-2 text-sm font-semibold rounded-lg transition whitespace-nowrap ${roleFilter === "all" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"}`}>All Users</button>
+          <button onClick={() => setRoleFilter("resident")} className={`px-4 py-2 text-sm font-semibold rounded-lg transition whitespace-nowrap ${roleFilter === "resident" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"}`}>Residents</button>
+          <button onClick={() => setRoleFilter("committee")} className={`px-4 py-2 text-sm font-semibold rounded-lg transition whitespace-nowrap ${roleFilter === "committee" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"}`}>Committee</button>
+          <button onClick={() => setRoleFilter("guard")} className={`px-4 py-2 text-sm font-semibold rounded-lg transition whitespace-nowrap ${roleFilter === "guard" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"}`}>Guards</button>
+        </div>
+
+        <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <h3 className="font-semibold text-slate-800">Directory</h3>
           <div className="relative">
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Search residents, flats..." 
+              placeholder="Search users..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-64 bg-white"
@@ -418,21 +436,22 @@ export default function ResidentsPage() {
                     <p className="text-sm">Loading directory...</p>
                   </td>
                 </tr>
-              ) : filteredResidents.length === 0 ? (
+              ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                     <div className="h-12 w-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mx-auto mb-3">
                       <Users className="h-6 w-6" />
                     </div>
-                    <p className="text-sm font-medium text-slate-700">No residents found</p>
-                    <p className="text-xs mt-1">Try adjusting your search or add a new resident.</p>
+                    <p className="text-sm font-medium text-slate-700">No users found</p>
+                    <p className="text-xs mt-1">Try adjusting your filters or search.</p>
                   </td>
                 </tr>
               ) : (
-                filteredResidents.map((resident) => (
+                filteredUsers.map((resident) => (
                   <tr key={resident.id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="font-medium text-slate-900">{resident.full_name || "N/A"}</div>
+                      <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mt-1">{resident.role}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-slate-600">{resident.email}</div>
@@ -467,6 +486,10 @@ export default function ResidentsPage() {
                         <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
                           Inactive
                         </span>
+                      ) : resident.registration_status === 'pending_signup' ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                          Pending Signup
+                        </span>
                       ) : (
                         <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-50 text-green-700 border border-green-100">
                           Active
@@ -497,7 +520,7 @@ export default function ResidentsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm px-4">
           <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-900">Invite Resident</h3>
+              <h3 className="text-lg font-bold text-slate-900">Invite User</h3>
               <button 
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition"
@@ -529,6 +552,21 @@ export default function ResidentsPage() {
                   placeholder="e.g. John Doe"
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Role</label>
+                <select 
+                  name="role"
+                  value={formData.role}
+                  onChange={(e) => setFormData({...formData, role: e.target.value})}
+                  required
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                >
+                  <option value="resident">Resident</option>
+                  <option value="committee">Committee Member</option>
+                  <option value="guard">Security Guard</option>
+                </select>
               </div>
 
               <div className="space-y-1.5">
@@ -582,7 +620,7 @@ export default function ResidentsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm px-4">
           <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-900">Edit Resident</h3>
+              <h3 className="text-lg font-bold text-slate-900">Edit User</h3>
               <button 
                 onClick={() => setIsEditModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition"
@@ -612,6 +650,20 @@ export default function ResidentsPage() {
                   required
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Role</label>
+                <select 
+                  value={editFormData.role}
+                  onChange={(e) => setEditFormData({...editFormData, role: e.target.value})}
+                  required
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                >
+                  <option value="resident">Resident</option>
+                  <option value="committee">Committee Member</option>
+                  <option value="guard">Security Guard</option>
+                </select>
               </div>
 
               <div className="space-y-1.5">
@@ -661,7 +713,7 @@ export default function ResidentsPage() {
                       disabled={editLoading}
                       className="w-full px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 border border-red-200 rounded-xl transition"
                     >
-                      Deactivate Resident (Moved Out)
+                      Deactivate User
                     </button>
                   </div>
                 )}

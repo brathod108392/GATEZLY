@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Megaphone, Plus, Loader2, X, AlertTriangle, Calendar, User } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { useSociety } from "@/components/providers/society-provider";
 
 interface Notice {
   id: string;
@@ -17,6 +18,7 @@ interface Notice {
 }
 
 export default function NoticesPage() {
+  const { society } = useSociety();
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
@@ -59,6 +61,7 @@ export default function NoticesPage() {
           role
         )
       `)
+      .eq("society_id", society.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -82,33 +85,36 @@ export default function NoticesPage() {
         title: formData.title,
         body: formData.body,
         is_emergency: formData.is_emergency,
-        author_id: user.id
+        author_id: user.id,
+        society_id: society.id
       });
 
       if (error) throw error;
 
       // --- BROADCAST PUSH NOTIFICATIONS ---
       try {
-        // 1. Get the current user's society_id
+        // 1. Get the current user's society_id (optional for test env)
         const { data: profile } = await supabase
           .from("profiles")
           .select("society_id")
           .eq("id", user.id)
           .single();
 
-        if (profile?.society_id) {
-          // 2. Fetch all valid expo push tokens for users in this society
-          const { data: users } = await supabase
-            .from("profiles")
-            .select("expo_push_token")
-            .eq("society_id", profile.society_id)
-            .not("expo_push_token", "is", null);
+        // 2. Fetch all valid expo push tokens
+        let query = supabase.from("profiles").select("expo_push_token").not("expo_push_token", "is", null);
+        
+        // Only filter by society_id if we have one
+        if (society?.id) {
+            query = query.eq("society_id", society.id);
+        }
 
-          if (users && users.length > 0) {
-            // Filter out empty tokens
-            const validTokens = users
-              .map(u => u.expo_push_token)
-              .filter(t => t && t.trim() !== '');
+        const { data: users } = await query;
+
+        if (users && users.length > 0) {
+          // Filter out empty tokens
+          const validTokens = users
+            .map(u => u.expo_push_token)
+            .filter(t => t && t.trim() !== '');
 
             if (validTokens.length > 0) {
               const pushPrefix = formData.is_emergency ? "🚨 Emergency Alert:" : "📢 New Society Notice:";
@@ -132,7 +138,6 @@ export default function NoticesPage() {
                 },
                 body: JSON.stringify(pushMessages),
               }).catch(err => console.error("Expo Push Request Failed:", err));
-            }
           }
         }
       } catch (pushErr) {

@@ -14,11 +14,11 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 
 export async function POST(request: Request) {
   try {
-    const { name, phone, email } = await request.json();
+    const { name, phone, email, role, target_society_id } = await request.json();
 
-    if (!email || !name) {
+    if (!email || !name || !role) {
       return NextResponse.json(
-        { error: 'Name and email are required.' },
+        { error: 'Name, email, and role are required.' },
         { status: 400 }
       );
     }
@@ -36,12 +36,29 @@ export async function POST(request: Request) {
     }
 
     const { data: profile } = await supabaseAdmin.from('profiles').select('role, society_id').eq('id', user.id).single();
-    if (!profile || profile.role === 'resident') {
-      return NextResponse.json({ error: 'Forbidden: Only Admins or Committee members can invite residents.' }, { status: 403 });
+    if (!profile) {
+      return NextResponse.json({ error: 'Forbidden: Profile not found.' }, { status: 403 });
     }
 
-    if (!profile.society_id) {
-      return NextResponse.json({ error: 'Forbidden: Inviter does not belong to a society.' }, { status: 403 });
+    let societyIdToAssign = profile.society_id;
+
+    // Authorization Checks
+    // Authorization Checks
+    if (profile.role === 'superadmin') {
+      if (role !== 'superadmin' && !target_society_id) {
+        return NextResponse.json({ error: 'target_society_id is required when inviting users to a society.' }, { status: 400 });
+      }
+      societyIdToAssign = role === 'superadmin' ? null : target_society_id;
+    } else if (profile.role === 'admin') {
+      if (role === 'superadmin' || role === 'admin') {
+        return NextResponse.json({ error: 'Admins cannot invite Superadmins or Admins.' }, { status: 403 });
+      }
+    } else if (profile.role === 'committee') {
+      if (role !== 'resident' && role !== 'guard') {
+        return NextResponse.json({ error: 'Committee can only invite residents or guards.' }, { status: 403 });
+      }
+    } else {
+      return NextResponse.json({ error: 'Forbidden: You do not have permission to invite users.' }, { status: 403 });
     }
 
     const requestUrl = new URL(request.url);
@@ -55,19 +72,19 @@ export async function POST(request: Request) {
         data: {
           full_name: name,
           phone: phone || null,
-          role: 'resident',
-          society_id: profile.society_id,
+          role: role,
+          society_id: societyIdToAssign,
         },
       }
     );
 
     if (error) {
-      console.error('Error inviting resident:', error);
+      console.error('Error inviting user:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(
-      { message: 'Resident invited successfully', user: data.user },
+      { message: 'User invited successfully', user: data.user },
       { status: 200 }
     );
   } catch (err: unknown) {
