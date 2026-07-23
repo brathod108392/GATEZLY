@@ -66,21 +66,36 @@ export default function LoginPage() {
         }
       }
 
-      // Check for expired reset link error in URL hash
-      if (typeof window !== "undefined" && window.location.hash) {
-        const hash = window.location.hash;
-        if (hash.includes("error_code=otp_expired")) {
-          setMessage({
-            type: "error",
-            text: "Your password reset link has expired or was already used. Please request a new one."
-          });
-          setMode("forgot");
-          // Clean up the hash
-          window.history.replaceState(null, "", window.location.pathname);
+        if (typeof window !== "undefined" && window.location.hash) {
+          const hash = window.location.hash;
+          if (hash.includes("error_code=otp_expired")) {
+            setMessage({
+              type: "error",
+              text: "Your password reset link has expired or was already used. Please request a new one."
+            });
+            setMode("forgot");
+            window.history.replaceState(null, "", window.location.pathname);
+          }
         }
-      }
-    };
-    checkSession();
+
+        // Check for URL query params (error states)
+        if (typeof window !== "undefined" && window.location.search) {
+          const params = new URLSearchParams(window.location.search);
+          const errorParam = params.get("error");
+          if (errorParam) {
+            let errorText = "An error occurred.";
+            if (errorParam === "account_deactivated") errorText = "Your account has been deactivated.";
+            else if (errorParam === "society_deleted") errorText = "Your society no longer exists on Gatezly.";
+            else if (errorParam === "society_suspended") errorText = "Your society portal has been temporarily suspended.";
+            else if (errorParam === "maintenance_mode") errorText = "Gatezly is currently undergoing maintenance. Please try again later.";
+            
+            setMessage({ type: "error", text: errorText });
+            // Clean up the URL
+            window.history.replaceState(null, "", window.location.pathname);
+          }
+        }
+      };
+      checkSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {

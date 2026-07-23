@@ -57,6 +57,7 @@ export default function ProtectedDashboardLayout({
   const [userEmail, setUserEmail] = useState<string>("");
   const [globalSearchQuery, setGlobalSearchQuery] = useState("");
   const [society, setSociety] = useState<{ id: string; name: string; slug: string; modules: Record<string, boolean> } | null>(null);
+  const [banner, setBanner] = useState<{ active: boolean; text: string } | null>(null);
 
   const handleGlobalSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && globalSearchQuery.trim()) {
@@ -114,10 +115,54 @@ export default function ProtectedDashboardLayout({
             router.push(data ? `/s/${data.slug}/dashboard` : "/login");
             return;
           }
+          
+          if (data.is_deleted) {
+            await supabase.auth.signOut();
+            setAuthenticated(false);
+            router.push("/login?error=society_deleted");
+            return;
+          }
+
+          if (data.is_active === false) {
+            await supabase.auth.signOut();
+            setAuthenticated(false);
+            router.push("/login?error=society_suspended");
+            return;
+          }
+
           soc = data;
         } else {
           router.push("/login");
           return;
+        }
+
+        // Global maintenance mode check for non-superadmins
+        if (profile?.role !== 'superadmin') {
+          const { data: platformSettings } = await supabase
+            .from('platform_settings')
+            .select('maintenance_mode, global_banner_active, global_banner_text')
+            .limit(1)
+            .single();
+
+          if (platformSettings?.maintenance_mode) {
+            await supabase.auth.signOut();
+            setAuthenticated(false);
+            router.push("/login?error=maintenance_mode");
+            return;
+          }
+          if (platformSettings?.global_banner_active && platformSettings.global_banner_text) {
+            setBanner({ active: true, text: platformSettings.global_banner_text });
+          }
+        } else {
+          // Fetch banner for superadmins too since they don't hit the above block
+          const { data: platformSettings } = await supabase
+            .from('platform_settings')
+            .select('global_banner_active, global_banner_text')
+            .limit(1)
+            .single();
+          if (platformSettings?.global_banner_active && platformSettings.global_banner_text) {
+            setBanner({ active: true, text: platformSettings.global_banner_text });
+          }
         }
 
         setSociety(soc);
@@ -188,8 +233,17 @@ export default function ProtectedDashboardLayout({
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans selection:bg-blue-600 selection:text-white">
-      {/* SIDEBAR (Desktop) */}
+    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800 font-sans selection:bg-blue-600 selection:text-white">
+      {/* GLOBAL BANNER */}
+      {banner?.active && banner.text && (
+        <div className="bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white shadow-sm flex items-center justify-center space-x-2 shrink-0 z-50">
+          <Bell className="h-4 w-4 animate-bounce" />
+          <span>{banner.text}</span>
+        </div>
+      )}
+
+      <div className="flex flex-1 min-h-0 relative">
+        {/* SIDEBAR (Desktop) */}
       <aside className="hidden lg:flex lg:flex-col lg:w-[280px] bg-white border-r border-slate-100 shrink-0 sticky top-0 h-screen z-30">
         {/* Brand Area */}
         <div className="px-6 py-8 flex flex-col items-start gap-4">
@@ -413,5 +467,6 @@ export default function ProtectedDashboardLayout({
         </main>
       </div>
     </div>
-  );
+  </div>
+);
 }

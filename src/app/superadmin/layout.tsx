@@ -10,8 +10,13 @@ import {
   LogOut,
   Loader2,
   Menu,
-  Plus,
-  X
+  X,
+  Users,
+  Settings,
+  Activity,
+  LayoutDashboard,
+  Shield,
+  Bell
 } from "lucide-react";
 
 export default function SuperAdminLayout({
@@ -26,6 +31,7 @@ export default function SuperAdminLayout({
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [userEmail, setUserEmail] = useState<string>("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [banner, setBanner] = useState<{ active: boolean; text: string } | null>(null);
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -52,6 +58,22 @@ export default function SuperAdminLayout({
 
         setAuthenticated(true);
         setUserEmail(session.user.email || "");
+
+        // Fetch banner
+        try {
+          const { data } = await supabase
+            .from("platform_settings")
+            .select("global_banner_active, global_banner_text")
+            .limit(1)
+            .single();
+          
+          if (data && data.global_banner_active) {
+            setBanner({ active: true, text: data.global_banner_text || "" });
+          }
+        } catch (bannerErr) {
+          console.error("Banner fetch error", bannerErr);
+        }
+
       } catch (error) {
         console.error("Auth verification error:", error);
         setAuthenticated(false);
@@ -103,7 +125,16 @@ export default function SuperAdminLayout({
   if (!authenticated) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans selection:bg-indigo-500/30 selection:text-indigo-900">
+    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800 font-sans selection:bg-indigo-500/30 selection:text-indigo-900">
+      {/* GLOBAL BANNER */}
+      {banner?.active && banner.text && (
+        <div className="bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white shadow-sm flex items-center justify-center space-x-2">
+          <Bell className="h-4 w-4 animate-bounce" />
+          <span>{banner.text}</span>
+        </div>
+      )}
+
+      <div className="flex flex-1 min-h-0">
       {/* MOBILE MENU OVERLAY */}
       {mobileMenuOpen && (
         <div 
@@ -140,6 +171,18 @@ export default function SuperAdminLayout({
 
         <nav className="flex-1 px-4 py-2 space-y-1.5 overflow-y-auto">
           <Link
+            href="/superadmin/overview"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
+              pathname === "/superadmin/overview"
+                ? "bg-white/10 text-white shadow-sm ring-1 ring-white/10"
+                : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+            }`}
+          >
+            <LayoutDashboard className={`h-4 w-4 transition-colors ${pathname === "/superadmin/overview" ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+            <span>Overview</span>
+          </Link>
+          <Link
             href="/superadmin"
             onClick={() => setMobileMenuOpen(false)}
             className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
@@ -149,19 +192,55 @@ export default function SuperAdminLayout({
             }`}
           >
             <Building2 className={`h-4 w-4 transition-colors ${pathname === "/superadmin" ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
-            <span>All Societies</span>
+            <span>Societies</span>
           </Link>
           <Link
-            href="/superadmin/create"
+            href="/superadmin/users"
             onClick={() => setMobileMenuOpen(false)}
             className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
-              pathname.startsWith("/superadmin/create")
+              pathname === "/superadmin/users"
                 ? "bg-white/10 text-white shadow-sm ring-1 ring-white/10"
                 : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
             }`}
           >
-            <Plus className={`h-4 w-4 transition-colors ${pathname.startsWith("/superadmin/create") ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
-            <span>Create Society</span>
+            <Users className={`h-4 w-4 transition-colors ${pathname === "/superadmin/users" ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+            <span>Global Users</span>
+          </Link>
+          <Link
+            href="/superadmin/admins"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
+              pathname === "/superadmin/admins"
+                ? "bg-white/10 text-white shadow-sm ring-1 ring-white/10"
+                : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+            }`}
+          >
+            <Shield className={`h-4 w-4 transition-colors ${pathname === "/superadmin/admins" ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+            <span>Admins</span>
+          </Link>
+          <Link
+            href="/superadmin/activity"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
+              pathname === "/superadmin/activity"
+                ? "bg-white/10 text-white shadow-sm ring-1 ring-white/10"
+                : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+            }`}
+          >
+            <Activity className={`h-4 w-4 transition-colors ${pathname === "/superadmin/activity" ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+            <span>Activity Logs</span>
+          </Link>
+          <Link
+            href="/superadmin/settings"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
+              pathname === "/superadmin/settings"
+                ? "bg-white/10 text-white shadow-sm ring-1 ring-white/10"
+                : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+            }`}
+          >
+            <Settings className={`h-4 w-4 transition-colors ${pathname === "/superadmin/settings" ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+            <span>Settings</span>
           </Link>
         </nav>
 
@@ -202,6 +281,7 @@ export default function SuperAdminLayout({
         </header>
 
         <main className="flex-1 p-6 sm:p-8 lg:p-10 overflow-y-auto z-10">{children}</main>
+      </div>
       </div>
     </div>
   );

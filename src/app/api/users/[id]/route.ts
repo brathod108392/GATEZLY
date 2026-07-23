@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { logSuperAdminAction } from "@/lib/superadminLogger";
 
-// Initialize a Supabase client with the Service Role key to bypass RLS
-// This is required for updating other users' profiles and deleting auth users.
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -20,13 +19,11 @@ export async function PUT(
 
     const token = authHeader.replace("Bearer ", "");
     
-    // Verify the requesting user's identity
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify requesting user is admin or superadmin
     const { data: callerProfile } = await supabaseAdmin
       .from("profiles")
       .select("role, society_id")
@@ -50,20 +47,40 @@ export async function PUT(
       return NextResponse.json({ error: "No fields to update" }, { status: 400 });
     }
 
-    // Additional check: Admins can only update users within their own society
+    const { data: targetProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("society_id, role, is_active")
+      .eq("id", targetUserId)
+      .single();
+
+    if (!targetProfile) {
+      return NextResponse.json({ error: "Target user not found" }, { status: 404 });
+    }
+
     if (callerProfile.role === "admin") {
-      const { data: targetProfile } = await supabaseAdmin
-        .from("profiles")
-        .select("society_id")
-        .eq("id", targetUserId)
-        .single();
-        
-      if (!targetProfile || targetProfile.society_id !== callerProfile.society_id) {
+      if (targetProfile.society_id !== callerProfile.society_id) {
         return NextResponse.json({ error: "Forbidden. Target user is not in your society." }, { status: 403 });
       }
     }
 
-    // Perform the update
+    // Super Admin Last Active Check
+    if (targetProfile.role === "superadmin") {
+      const roleChanging = updateData.role !== undefined && updateData.role !== "superadmin";
+      const becomingInactive = updateData.is_active === false;
+      
+      if (roleChanging || becomingInactive) {
+        const { count } = await supabaseAdmin
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'superadmin')
+          .eq('is_active', true);
+          
+        if (count !== null && count <= 1) {
+          return NextResponse.json({ error: "Cannot remove the last active super admin." }, { status: 400 });
+        }
+      }
+    }
+
     const { error: updateError } = await supabaseAdmin
       .from("profiles")
       .update(updateData)
@@ -71,9 +88,12 @@ export async function PUT(
 
     if (updateError) throw updateError;
 
-    // If deactivating, remove them from all assigned flats
     if (updateData.is_active === false) {
       await supabaseAdmin.from("flat_residents").delete().eq("resident_id", targetUserId);
+    }
+
+    if (callerProfile.role === "superadmin") {
+      await logSuperAdminAction(supabaseAdmin, user.id, 'UPDATE_USER', 'profile', targetUserId, updateData);
     }
 
     return NextResponse.json({ success: true });
@@ -96,13 +116,11 @@ export async function DELETE(
 
     const token = authHeader.replace("Bearer ", "");
     
-    // Verify the requesting user's identity
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify requesting user is admin or superadmin
     const { data: callerProfile } = await supabaseAdmin
       .from("profiles")
       .select("role, society_id")
@@ -115,26 +133,44 @@ export async function DELETE(
 
     const targetUserId = params.id;
 
-    // Additional check: Admins can only delete users within their own society
+    const { data: targetProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("society_id, role, is_active")
+      .eq("id", targetUserId)
+      .single();
+
+    if (!targetProfile) {
+      return NextResponse.json({ error: "Target user not found" }, { status: 404 });
+    }
+
     if (callerProfile.role === "admin") {
-      const { data: targetProfile } = await supabaseAdmin
-        .from("profiles")
-        .select("society_id")
-        .eq("id", targetUserId)
-        .single();
-        
-      if (!targetProfile || targetProfile.society_id !== callerProfile.society_id) {
+      if (targetProfile.society_id !== callerProfile.society_id) {
         return NextResponse.json({ error: "Forbidden. Target user is not in your society." }, { status: 403 });
       }
     }
 
-    // 1. Delete from flat_residents (if applicable)
+    // Super Admin Last Active Check
+    if (targetProfile.role === "superadmin" && targetProfile.is_active) {
+      const { count } = await supabaseAdmin
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'superadmin')
+        .eq('is_active', true);
+        
+      if (count !== null && count <= 1) {
+        return NextResponse.json({ error: "Cannot remove the last active super admin." }, { status: 400 });
+      }
+    }
+
     await supabaseAdmin.from("flat_residents").delete().eq("resident_id", targetUserId);
     
-    // 2. Delete from auth.users (This will cascade delete from public.profiles via schema foreign key)
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(targetUserId);
 
     if (deleteError) throw deleteError;
+
+    if (callerProfile.role === "superadmin") {
+      await logSuperAdminAction(supabaseAdmin, user.id, 'DELETE_USER', 'profile', targetUserId, { targetUserId });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
