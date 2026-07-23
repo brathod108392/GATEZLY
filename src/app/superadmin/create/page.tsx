@@ -51,9 +51,9 @@ export default function CreateSocietyPage() {
         }
       } else if (data) {
         setSuccess(true);
-        // Automatically redirect to the society dashboard after a brief animation
+        // Automatically redirect back to superadmin dashboard after a brief animation
         setTimeout(() => {
-          router.push(`/s/${data.slug}/dashboard`);
+          router.push(`/superadmin`);
         }, 800);
       }
     } catch (err: unknown) {
