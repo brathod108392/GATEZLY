@@ -171,6 +171,7 @@ export default function FlatsPage() {
     }
 
     const inserts = flatNumbers.map(num => ({
+      society_id: society.id,
       tower_id: flatData.tower_id,
       number: num,
       floor: flatData.floor ? parseInt(flatData.floor) : null,
@@ -194,6 +195,7 @@ export default function FlatsPage() {
     setActionError("");
     
     const { error } = await supabase.from("flat_residents").insert([{
+      society_id: society.id,
       flat_id: selectedFlatId,
       resident_id: assignData.resident_id,
       is_owner: assignData.is_owner
