@@ -158,22 +158,22 @@ export default function NoticesPage() {
   const canManage = currentUserRole === "admin" || currentUserRole === "committee";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-3xl border border-slate-200/60 p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 flex items-center space-x-2">
             <Megaphone className="h-6 w-6 text-indigo-600" />
             <span>Digital Notice Board</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-sm text-slate-500 mt-1">
             Broadcast society notices, circulars, and emergency alerts instantly to all residents.
           </p>
         </div>
         {canManage && (
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-md shadow-indigo-600/20 transition cursor-pointer"
+            className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm shadow-sm hover:shadow-md hover:shadow-indigo-500/20 transition-all cursor-pointer"
           >
             <Plus className="h-4 w-4" />
             <span>Create Notice</span>
@@ -183,48 +183,57 @@ export default function NoticesPage() {
 
       {/* Notices List */}
       {loading ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-500">
+        <div 
+          className="bg-white rounded-3xl border border-slate-200/60 p-12 text-center text-slate-500 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+          style={{ animationDelay: '100ms' }}
+        >
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-indigo-500" />
           <p className="text-sm font-medium">Loading notices...</p>
         </div>
       ) : notices.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3 shadow-xs">
-          <div className="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
-            <Megaphone className="h-6 w-6" />
+        <div 
+          className="bg-white rounded-3xl border border-slate-200/60 p-12 text-center space-y-3 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+          style={{ animationDelay: '100ms' }}
+        >
+          <div className="h-16 w-16 rounded-3xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+            <Megaphone className="h-8 w-8" />
           </div>
-          <h3 className="text-base font-bold text-slate-900">No Notices Yet</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          <h3 className="text-lg font-bold text-slate-900">No Notices Yet</h3>
+          <p className="text-sm text-slate-500 max-w-sm mx-auto">
             There are currently no active announcements on the board.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {notices.map((notice) => (
+          {notices.map((notice, index) => (
             <div 
               key={notice.id} 
-              className={`bg-white rounded-2xl border shadow-xs overflow-hidden flex flex-col ${
-                notice.is_emergency ? 'border-red-300 shadow-red-500/10' : 'border-slate-200'
+              className={`bg-white rounded-3xl border overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both ${
+                notice.is_emergency 
+                  ? 'border-red-200 shadow-sm hover:shadow-md hover:shadow-red-500/10 transition-all' 
+                  : 'border-slate-200/60 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all'
               }`}
+              style={{ animationDelay: `${(index + 1) * 100}ms` }}
             >
               {notice.is_emergency && (
-                <div className="bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider px-4 py-1.5 flex items-center space-x-1.5">
-                  <AlertTriangle className="h-3.5 w-3.5" />
+                <div className="bg-red-50 text-red-700 border-b border-red-100 text-xs font-bold uppercase tracking-wider px-5 py-2.5 flex items-center space-x-1.5">
+                  <AlertTriangle className="h-4 w-4" />
                   <span>Emergency Alert</span>
                 </div>
               )}
-              <div className="p-5 flex-1 flex flex-col">
-                <h3 className="text-lg font-bold text-slate-900 mb-2 leading-tight">
+              <div className="p-6 flex-1 flex flex-col">
+                <h3 className="text-xl font-bold text-slate-900 mb-2 leading-tight">
                   {notice.title}
                 </h3>
                 <p className="text-sm text-slate-600 whitespace-pre-wrap flex-1">
                   {notice.body}
                 </p>
-                <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                  <div className="flex items-center space-x-1">
-                    <User className="h-3.5 w-3.5" />
+                <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                  <div className="flex items-center space-x-1.5">
+                    <User className="h-4 w-4" />
                     <span className="font-medium text-slate-700">{notice.profiles?.full_name || 'Admin'}</span>
                   </div>
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center space-x-1.5 bg-slate-50 px-2 py-1 rounded-lg">
                     <Calendar className="h-3.5 w-3.5" />
                     <span>{new Date(notice.created_at).toLocaleDateString()}</span>
                   </div>
@@ -237,27 +246,33 @@ export default function NoticesPage() {
 
       {/* Create Notice Modal */}
       {isModalOpen && canManage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                <Megaphone className="h-5 w-5 text-indigo-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+            <div className="flex items-center justify-between p-6 sm:p-8 border-b border-slate-100">
+              <h3 className="text-xl font-bold text-slate-900 flex items-center space-x-2">
+                <div className="bg-indigo-50 p-2 rounded-xl text-indigo-600">
+                  <Megaphone className="h-5 w-5" />
+                </div>
                 <span>Create New Notice</span>
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-full transition">
+              <button 
+                onClick={() => setIsModalOpen(false)} 
+                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-5">
               {actionError && (
-                <div className="text-red-600 text-sm bg-red-50 p-3 rounded-xl border border-red-100">
-                  {actionError}
+                <div className="text-red-600 text-sm bg-red-50 p-4 rounded-2xl border border-red-100 flex items-center space-x-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span>{actionError}</span>
                 </div>
               )}
               
-              <div>
-                <label className="text-sm font-medium text-slate-700">Notice Title</label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">Notice Title</label>
                 <input 
                   type="text" 
                   required 
@@ -265,54 +280,57 @@ export default function NoticesPage() {
                   placeholder="e.g. Scheduled Water Maintenance"
                   value={formData.title} 
                   onChange={e => setFormData({...formData, title: e.target.value})} 
-                  className="w-full mt-1.5 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
                 />
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-slate-700">Notice Content</label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">Notice Content</label>
                 <textarea 
                   required 
                   rows={5}
                   placeholder="Write the full details of the notice here..."
                   value={formData.body} 
                   onChange={e => setFormData({...formData, body: e.target.value})} 
-                  className="w-full mt-1.5 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition resize-none"
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none placeholder:text-slate-400"
                 />
               </div>
 
-              <div className="flex items-center space-x-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                <input 
-                  type="checkbox" 
-                  id="is_emergency" 
-                  checked={formData.is_emergency} 
-                  onChange={e => setFormData({...formData, is_emergency: e.target.checked})} 
-                  className="rounded border-slate-300 text-red-600 focus:ring-red-500 h-5 w-5 cursor-pointer" 
-                />
+              <div className="flex items-center space-x-4 p-4 sm:p-5 bg-slate-50/50 rounded-2xl border border-slate-200/60">
+                <div className="flex items-center h-5">
+                  <input 
+                    type="checkbox" 
+                    id="is_emergency" 
+                    checked={formData.is_emergency} 
+                    onChange={e => setFormData({...formData, is_emergency: e.target.checked})} 
+                    className="rounded border-slate-300 text-red-600 focus:ring-red-500 focus:ring-offset-0 h-5 w-5 cursor-pointer" 
+                  />
+                </div>
                 <div className="flex flex-col">
-                  <label htmlFor="is_emergency" className="text-sm font-bold text-slate-800 cursor-pointer">
+                  <label htmlFor="is_emergency" className="text-sm font-bold text-slate-900 cursor-pointer">
                     Mark as Emergency
                   </label>
-                  <span className="text-xs text-slate-500">
-                    Highlights the notice in red to grab immediate attention.
+                  <span className="text-xs text-slate-500 mt-0.5">
+                    Highlights the notice in red and sends high-priority alerts.
                   </span>
                 </div>
               </div>
 
-              <div className="pt-2 flex space-x-3">
+              <div className="pt-4 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
                 <button 
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                  className="flex-1 py-3 px-4 text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-2xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={actionLoading} 
-                  className="flex-1 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-md shadow-indigo-600/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="flex-1 py-3 px-4 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-2xl transition-all shadow-sm hover:shadow-md hover:shadow-indigo-500/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                 >
-                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post Notice"}
+                  {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <span>{actionLoading ? "Posting..." : "Post Notice"}</span>
                 </button>
               </div>
             </form>

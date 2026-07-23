@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Users, Plus, Loader2, Search, X } from "lucide-react";
+import { Users, Plus, Loader2, Search, X, Shield, ShieldAlert, User, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useSearchParams } from "next/navigation";
 import { useSociety } from "@/components/providers/society-provider";
@@ -353,16 +353,16 @@ export default function UsersPage() {
   if (roleLoading) {
     return (
       <div className="flex justify-center p-12">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
       </div>
     );
   }
 
   if (currentUserRole === "resident") {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
-        <div className="mx-auto h-16 w-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
-          <Users className="h-8 w-8" />
+      <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm max-w-2xl mx-auto mt-8">
+        <div className="mx-auto h-16 w-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-6">
+          <ShieldAlert className="h-8 w-8" />
         </div>
         <h2 className="text-xl font-bold text-slate-900 mb-2">Access Denied</h2>
         <p className="text-slate-500 text-sm max-w-sm mx-auto">
@@ -373,139 +373,162 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 max-w-7xl mx-auto">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 flex items-center space-x-2">
-            <Users className="h-6 w-6 text-blue-600" />
-            <span>Users</span>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center space-x-2">
+            <Users className="h-6 w-6 text-indigo-600" />
+            <span>Users Directory</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Manage society residents, family members, committee, and guards.
+          <p className="text-sm text-slate-500 mt-1">
+            Manage society residents, committee members, and guards.
           </p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md shadow-blue-600/20 transition cursor-pointer"
+          className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-medium text-sm shadow-sm shadow-indigo-500/20 transition-all cursor-pointer ring-1 ring-inset ring-indigo-500/20"
         >
           <Plus className="h-4 w-4" />
           <span>Add User</span>
         </button>
       </div>
 
-      {/* Users Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        {/* Role Filter Tabs */}
-        <div className="flex items-center overflow-x-auto border-b border-slate-200 bg-slate-50/50 p-2 space-x-2">
-          <button onClick={() => setRoleFilter("all")} className={`px-4 py-2 text-sm font-semibold rounded-lg transition whitespace-nowrap ${roleFilter === "all" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"}`}>All Users</button>
-          <button onClick={() => setRoleFilter("resident")} className={`px-4 py-2 text-sm font-semibold rounded-lg transition whitespace-nowrap ${roleFilter === "resident" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"}`}>Residents</button>
-          <button onClick={() => setRoleFilter("committee")} className={`px-4 py-2 text-sm font-semibold rounded-lg transition whitespace-nowrap ${roleFilter === "committee" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"}`}>Committee</button>
-          <button onClick={() => setRoleFilter("guard")} className={`px-4 py-2 text-sm font-semibold rounded-lg transition whitespace-nowrap ${roleFilter === "guard" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"}`}>Guards</button>
-        </div>
+      {/* Main Content Area */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        {/* Filters and Search */}
+        <div className="p-4 border-b border-slate-200/80 bg-slate-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+          <div className="flex items-center p-1 bg-slate-200/50 rounded-xl space-x-1 border border-slate-200/50 overflow-x-auto max-w-full">
+            {['all', 'resident', 'committee', 'guard'].map(role => (
+              <button 
+                key={role}
+                onClick={() => setRoleFilter(role as "all" | "resident" | "guard" | "committee")} 
+                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all capitalize whitespace-nowrap ${roleFilter === role ? "bg-white text-indigo-700 shadow-sm ring-1 ring-black/5" : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"}`}
+              >
+                {role === 'all' ? 'All Users' : role}
+              </button>
+            ))}
+          </div>
 
-        <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <h3 className="font-semibold text-slate-800">Directory</h3>
-          <div className="relative">
+          <div className="relative w-full xl:w-auto">
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Search users..." 
+              placeholder="Search users by name, flat, phone..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-64 bg-white"
+              className="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 w-full xl:w-80 bg-white hover:border-slate-300 transition-colors shadow-sm"
             />
           </div>
         </div>
         
+        {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-                <th className="px-6 py-4 font-medium">Name</th>
-                <th className="px-6 py-4 font-medium">Contact</th>
-                <th className="px-6 py-4 font-medium">Flat / Tower</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium">Added On</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
+              <tr className="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                <th className="px-6 py-4 font-semibold">User</th>
+                <th className="px-6 py-4 font-semibold">Contact Info</th>
+                <th className="px-6 py-4 font-semibold">Property</th>
+                <th className="px-6 py-4 font-semibold">Status</th>
+                <th className="px-6 py-4 font-semibold">Added</th>
+                <th className="px-6 py-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-500" />
-                    <p className="text-sm">Loading directory...</p>
+                  <td colSpan={6} className="px-6 py-16 text-center text-slate-500">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-3 text-indigo-500" />
+                    <p className="text-sm font-medium">Loading directory...</p>
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                    <div className="h-12 w-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mx-auto mb-3">
-                      <Users className="h-6 w-6" />
+                  <td colSpan={6} className="px-6 py-16 text-center text-slate-500">
+                    <div className="h-12 w-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center mx-auto mb-3 ring-1 ring-slate-200">
+                      <Users className="h-5 w-5" />
                     </div>
                     <p className="text-sm font-medium text-slate-700">No users found</p>
-                    <p className="text-xs mt-1">Try adjusting your filters or search.</p>
+                    <p className="text-xs mt-1">Try adjusting your filters or search criteria.</p>
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map((resident) => (
                   <tr key={resident.id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="px-6 py-4">
-                      <div className="font-medium text-slate-900">{resident.full_name || "N/A"}</div>
-                      <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mt-1">{resident.role}</div>
+                      <div className="flex items-center space-x-3">
+                        <div className="h-9 w-9 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm ring-1 ring-indigo-100">
+                          {resident.full_name ? resident.full_name.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-slate-900 text-sm">{resident.full_name || "N/A"}</div>
+                          <div className="flex items-center space-x-1 mt-0.5">
+                            {resident.role === 'committee' && <ShieldCheck className="h-3 w-3 text-indigo-500" />}
+                            {resident.role === 'guard' && <Shield className="h-3 w-3 text-slate-500" />}
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{resident.role}</span>
+                          </div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-slate-600">{resident.email}</div>
-                      {resident.phone && <div className="text-xs text-slate-400 mt-0.5">{resident.phone}</div>}
+                      <div className="text-sm text-slate-700 font-medium">{resident.email}</div>
+                      {resident.phone ? (
+                        <div className="text-xs text-slate-500 mt-0.5">{resident.phone}</div>
+                      ) : (
+                        <div className="text-xs text-slate-400 mt-0.5 italic">No phone</div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {resident.flat_residents && resident.flat_residents.length > 0 ? (
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                           {resident.flat_residents.map((fr, idx) => (
-                            <div key={idx} className="flex items-center space-x-1">
-                              {fr.flats?.property_type === 'bungalow' ? (
-                                <span className="text-sm font-bold text-slate-800">Bungalow {fr.flats?.number}</span>
-                              ) : (
-                                <>
-                                  <span className="text-sm font-bold text-slate-800">{fr.flats?.towers?.name} &bull; {fr.flats?.property_type === 'apartment' ? 'Apt' : 'Flat'} {fr.flats?.number}</span>
-                                </>
-                              )}
-                              {fr.is_owner ? (
-                                <span className="ml-1 text-[9px] font-bold bg-amber-100 text-amber-700 px-1 py-0.5 rounded">OWNER</span>
-                              ) : (
-                                <span className="ml-1 text-[9px] font-bold bg-indigo-100 text-indigo-700 px-1 py-0.5 rounded">TENANT</span>
-                              )}
+                            <div key={idx} className="flex flex-col">
+                              <span className="text-sm font-medium text-slate-800">
+                                {fr.flats?.property_type === 'bungalow' ? (
+                                  `Bungalow ${fr.flats?.number}`
+                                ) : (
+                                  `${fr.flats?.towers?.name} • Apt ${fr.flats?.number}`
+                                )}
+                              </span>
+                              <div>
+                                {fr.is_owner ? (
+                                  <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md border border-slate-200 inline-block mt-0.5">OWNER</span>
+                                ) : (
+                                  <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-md border border-indigo-100 inline-block mt-0.5">TENANT</span>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400 italic">Unassigned</span>
+                        <span className="text-xs text-slate-400 italic px-2 py-1 bg-slate-50 rounded-md border border-slate-100">Unassigned</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
                       {resident.is_active === false ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
                           Inactive
                         </span>
                       ) : resident.registration_status === 'pending_signup' ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20">
                           Pending Signup
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-50 text-green-700 border border-green-100">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
                           Active
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-500">
-                      {new Date(resident.created_at).toLocaleDateString()}
+                    <td className="px-6 py-4 text-sm text-slate-500 font-medium">
+                      {new Date(resident.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button 
                         onClick={() => openEditModal(resident)}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium transition"
+                        className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
                       >
-                        Edit
+                        Manage
                       </button>
                     </td>
                   </tr>
@@ -518,13 +541,13 @@ export default function UsersPage() {
 
       {/* Add Resident Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-900">Invite User</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-slate-200/50">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
+              <h3 className="text-lg font-bold text-slate-900">Invite New User</h3>
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition"
+                className="text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 p-1.5 rounded-full transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -532,18 +555,18 @@ export default function UsersPage() {
             
             <form onSubmit={handleInviteSubmit} className="p-6 space-y-4">
               {inviteError && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm">
+                <div className="p-3 rounded-xl bg-red-50 ring-1 ring-inset ring-red-600/20 text-red-600 text-sm font-medium">
                   {inviteError}
                 </div>
               )}
               {inviteSuccess && (
-                <div className="p-3 rounded-xl bg-green-50 border border-green-100 text-green-700 text-sm font-medium">
+                <div className="p-3 rounded-xl bg-emerald-50 ring-1 ring-inset ring-emerald-600/20 text-emerald-700 text-sm font-medium">
                   {inviteSuccess}
                 </div>
               )}
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Full Name</label>
+                <label className="text-sm font-semibold text-slate-700">Full Name</label>
                 <input 
                   type="text" 
                   name="name"
@@ -551,18 +574,18 @@ export default function UsersPage() {
                   onChange={handleInputChange}
                   required
                   placeholder="e.g. John Doe"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Role</label>
+                <label className="text-sm font-semibold text-slate-700">Role</label>
                 <select 
                   name="role"
                   value={formData.role}
                   onChange={(e) => setFormData({...formData, role: e.target.value})}
                   required
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
                 >
                   <option value="resident">Resident</option>
                   <option value="committee">Committee Member</option>
@@ -571,7 +594,7 @@ export default function UsersPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Email Address</label>
+                <label className="text-sm font-semibold text-slate-700">Email Address</label>
                 <input 
                   type="email" 
                   name="email"
@@ -579,34 +602,34 @@ export default function UsersPage() {
                   onChange={handleInputChange}
                   required
                   placeholder="john@example.com"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Phone Number (Optional)</label>
+                <label className="text-sm font-semibold text-slate-700">Phone Number (Optional)</label>
                 <input 
                   type="tel" 
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
                   placeholder="+1 (555) 000-0000"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
                 />
               </div>
 
-              <div className="pt-4 flex items-center justify-end space-x-3">
+              <div className="pt-5 flex items-center justify-end space-x-3">
                 <button 
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                  className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
                   disabled={inviteLoading}
-                  className="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-600/20 transition disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
+                  className="px-6 py-2.5 text-sm font-medium text-white bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 rounded-xl shadow-sm shadow-indigo-500/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px] ring-1 ring-inset ring-indigo-500/20"
                 >
                   {inviteLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Invite"}
                 </button>
@@ -618,13 +641,13 @@ export default function UsersPage() {
 
       {/* Edit Resident Modal */}
       {isEditModalOpen && selectedResident && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-900">Edit User</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md my-8 animate-in fade-in zoom-in-95 duration-200 border border-slate-200/50">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
+              <h3 className="text-lg font-bold text-slate-900">Manage User</h3>
               <button 
                 onClick={() => setIsEditModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition"
+                className="text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 p-1.5 rounded-full transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -632,34 +655,34 @@ export default function UsersPage() {
             
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
               {editError && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm">
+                <div className="p-3 rounded-xl bg-red-50 ring-1 ring-inset ring-red-600/20 text-red-600 text-sm font-medium">
                   {editError}
                 </div>
               )}
               {editSuccess && (
-                <div className="p-3 rounded-xl bg-green-50 border border-green-100 text-green-700 text-sm font-medium">
+                <div className="p-3 rounded-xl bg-emerald-50 ring-1 ring-inset ring-emerald-600/20 text-emerald-700 text-sm font-medium">
                   {editSuccess}
                 </div>
               )}
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Full Name</label>
+                <label className="text-sm font-semibold text-slate-700">Full Name</label>
                 <input 
                   type="text" 
                   value={editFormData.name}
                   onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
                   required
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Role</label>
+                <label className="text-sm font-semibold text-slate-700">Role</label>
                 <select 
                   value={editFormData.role}
                   onChange={(e) => setEditFormData({...editFormData, role: e.target.value})}
                   required
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
                 >
                   <option value="resident">Resident</option>
                   <option value="committee">Committee Member</option>
@@ -668,51 +691,51 @@ export default function UsersPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Phone Number</label>
+                <label className="text-sm font-semibold text-slate-700">Phone Number</label>
                 <input 
                   type="tel" 
                   value={editFormData.phone}
                   onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
                 />
               </div>
               
-              <div className="space-y-1.5 pt-2">
-                <label className="text-sm font-medium text-slate-700">Email Address</label>
+              <div className="space-y-1.5 pt-1">
+                <label className="text-sm font-semibold text-slate-700">Email Address</label>
                 <input 
                   type="email" 
                   value={selectedResident.email}
                   disabled
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed text-sm"
                 />
-                <p className="text-[10px] text-slate-500">Email addresses cannot be changed.</p>
+                <p className="text-[10px] text-slate-400 font-medium ml-1">Email addresses cannot be changed.</p>
               </div>
 
-              <div className="pt-4 flex flex-col space-y-3">
+              <div className="pt-5 flex flex-col space-y-4">
                 <div className="flex items-center justify-end space-x-3">
                   <button 
                     type="button"
                     onClick={() => setIsEditModalOpen(false)}
-                    className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                    className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit"
                     disabled={editLoading}
-                    className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition disabled:opacity-70 flex items-center justify-center min-w-[120px]"
+                    className="px-6 py-2.5 text-sm font-medium text-white bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 rounded-xl shadow-sm shadow-indigo-500/20 transition-all disabled:opacity-70 flex items-center justify-center min-w-[120px] ring-1 ring-inset ring-indigo-500/20"
                   >
                     {editLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
                   </button>
                 </div>
                 
                 {selectedResident.is_active !== false && (
-                  <div className="pt-4 mt-2 border-t border-slate-100">
+                  <div className="pt-5 mt-2 border-t border-slate-100">
                     <button 
                       type="button"
                       onClick={handleDeactivate}
                       disabled={editLoading}
-                      className="w-full px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 border border-red-200 rounded-xl transition"
+                      className="w-full px-4 py-2.5 text-sm font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-xl transition-colors bg-white shadow-sm"
                     >
                       Deactivate User
                     </button>
@@ -720,19 +743,19 @@ export default function UsersPage() {
                 )}
                 
                 {(!selectedResident.is_active || !selectedResident.flat_residents || selectedResident.flat_residents.length === 0) && (
-                  <div className="pt-4 mt-2 border-t border-slate-100 space-y-4">
+                  <div className="pt-5 mt-2 border-t border-slate-100 space-y-4">
                     <div>
-                      <h4 className="text-sm font-bold text-slate-800 mb-2">Assign to Property</h4>
-                      <p className="text-xs text-slate-500 mb-2">
+                      <h4 className="text-sm font-bold text-slate-900 mb-1">Assign to Property</h4>
+                      <p className="text-xs text-slate-500 mb-3 leading-relaxed">
                         {selectedResident.is_active === false 
                           ? "If this resident is moving within the society, assign them to a new property to reactivate their account."
                           : "Assign this active resident to a vacant property."}
                       </p>
-                      <div className="flex flex-col space-y-2">
+                      <div className="flex flex-col space-y-3">
                         <select
                           value={selectedReassignFlatId}
                           onChange={(e) => setSelectedReassignFlatId(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:border-blue-500"
+                          className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                         >
                           <option value="">Select a property...</option>
                           {vacantFlats.map((flat) => (
@@ -742,11 +765,11 @@ export default function UsersPage() {
                             </option>
                           ))}
                         </select>
-                        <div className="flex space-x-2">
+                        <div className="flex space-x-3">
                           <select
                             value={selectedReassignIsOwner ? "owner" : "tenant"}
                             onChange={(e) => setSelectedReassignIsOwner(e.target.value === "owner")}
-                            className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:border-blue-500"
+                            className="flex-1 px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                           >
                             <option value="tenant">Tenant</option>
                             <option value="owner">Owner</option>
@@ -755,7 +778,7 @@ export default function UsersPage() {
                             type="button"
                             onClick={handleReassign}
                             disabled={!selectedReassignFlatId || editLoading}
-                            className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition disabled:opacity-50"
+                            className="px-6 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-50 shadow-sm"
                           >
                             Assign
                           </button>
@@ -764,12 +787,12 @@ export default function UsersPage() {
                     </div>
                     
                     {selectedResident.is_active === false && (
-                      <div className="pt-4 border-t border-slate-100">
+                      <div className="pt-5 border-t border-slate-100">
                         <button 
                           type="button"
                           onClick={handleDeletePermanent}
                           disabled={editLoading}
-                          className="w-full px-4 py-2.5 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition"
+                          className="w-full px-4 py-2.5 text-sm font-semibold text-red-700 bg-red-50 hover:bg-red-100 ring-1 ring-inset ring-red-600/20 rounded-xl transition-colors shadow-sm"
                         >
                           Permanently Delete Account
                         </button>
