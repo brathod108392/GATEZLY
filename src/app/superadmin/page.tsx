@@ -81,9 +81,13 @@ export default function SuperAdminDashboard() {
 
   const toggleStatus = async (society: Society) => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(`/api/societies/${society.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`
+        },
         body: JSON.stringify({ is_active: !society.is_active })
       });
       if (!res.ok) throw new Error("Failed to update status");
@@ -97,9 +101,13 @@ export default function SuperAdminDashboard() {
     if (!deleteModal.society) return;
     setActionLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(`/api/societies/${deleteModal.society.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`
+        },
         body: JSON.stringify({ is_deleted: true })
       });
       if (!res.ok) throw new Error("Failed to delete");
@@ -117,9 +125,13 @@ export default function SuperAdminDashboard() {
     if (!billingModal.society) return;
     setActionLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(`/api/societies/${billingModal.society.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`
+        },
         body: JSON.stringify({
           subscription_plan: billingForm.subscription_plan,
           payment_status: billingForm.payment_status,
