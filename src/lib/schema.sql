@@ -250,65 +250,64 @@ using (
   society_id = public.auth_user_society_id() OR
   public.auth_user_role() = 'superadmin'
 );
-- -   9 .   C r e a t e   V i s i t o r s   T a b l e  
- c r e a t e   t a b l e   i f   n o t   e x i s t s   p u b l i c . v i s i t o r s   (  
-     i d   u u i d   p r i m a r y   k e y   d e f a u l t   g e n _ r a n d o m _ u u i d ( ) ,  
-     s o c i e t y _ i d   u u i d   r e f e r e n c e s   p u b l i c . s o c i e t i e s ( i d )   o n   d e l e t e   c a s c a d e   n o t   n u l l ,  
-     v i s i t o r _ n a m e   t e x t   n o t   n u l l ,  
-     p u r p o s e   t e x t   n o t   n u l l ,  
-     p h o n e   t e x t ,  
-     v e h i c l e _ t y p e   t e x t   c h e c k   ( v e h i c l e _ t y p e   i n   ( ' N o n e ' ,   ' C a r ' ,   ' T w o   W h e e l e r ' ) )   d e f a u l t   ' N o n e ' ,  
-     p e r s o n _ c o u n t   i n t e g e r   d e f a u l t   1 ,  
-     s t a t u s   t e x t   c h e c k   ( s t a t u s   i n   ( ' p e n d i n g ' ,   ' a p p r o v e d ' ,   ' d e n i e d ' ,   ' c h e c k e d _ o u t ' ) )   d e f a u l t   ' p e n d i n g ' ,  
-     e x i t _ t i m e   t i m e s t a m p   w i t h   t i m e   z o n e ,  
-     c r e a t e d _ a t   t i m e s t a m p   w i t h   t i m e   z o n e   d e f a u l t   t i m e z o n e ( ' u t c ' : : t e x t ,   n o w ( ) )   n o t   n u l l  
- ) ;  
-  
- C R E A T E   T R I G G E R   s e t _ t e n a n t _ v i s i t o r s   B E F O R E   I N S E R T   O N   p u b l i c . v i s i t o r s   F O R   E A C H   R O W   E X E C U T E   P R O C E D U R E   p u b l i c . s e t _ t e n a n t _ i d ( ) ;  
-  
- a l t e r   t a b l e   p u b l i c . v i s i t o r s   e n a b l e   r o w   l e v e l   s e c u r i t y ;  
-  
- c r e a t e   p o l i c y   " T e n a n t   i s o l a t i o n   f o r   v i s i t o r s "   o n   p u b l i c . v i s i t o r s   f o r   a l l   t o   a u t h e n t i c a t e d    
- u s i n g   (  
-     s o c i e t y _ i d   =   p u b l i c . a u t h _ u s e r _ s o c i e t y _ i d ( )   O R  
-     p u b l i c . a u t h _ u s e r _ r o l e ( )   =   ' s u p e r a d m i n '  
- ) ;  
- - -   1 .   C r e a t e   C o m p l a i n t s   T a b l e  
- c r e a t e   t a b l e   i f   n o t   e x i s t s   p u b l i c . c o m p l a i n t s   (  
-     i d   u u i d   p r i m a r y   k e y   d e f a u l t   g e n _ r a n d o m _ u u i d ( ) ,  
-     s o c i e t y _ i d   u u i d   r e f e r e n c e s   p u b l i c . s o c i e t i e s ( i d )   o n   d e l e t e   c a s c a d e   n o t   n u l l ,  
-     r e s i d e n t _ i d   u u i d   r e f e r e n c e s   p u b l i c . p r o f i l e s ( i d )   o n   d e l e t e   c a s c a d e   n o t   n u l l ,  
-     t i t l e   t e x t   n o t   n u l l ,  
-     d e s c r i p t i o n   t e x t   n o t   n u l l ,  
-     s t a t u s   t e x t   c h e c k   ( s t a t u s   i n   ( ' p e n d i n g ' ,   ' i n _ p r o g r e s s ' ,   ' r e s o l v e d ' ,   ' e s c a l a t e d ' ) )   d e f a u l t   ' p e n d i n g ' ,  
-     c a t e g o r y   t e x t   n o t   n u l l ,  
-     r e s o l u t i o n _ t i m e _ d a y s   n u m e r i c ,  
-     c r e a t e d _ a t   t i m e s t a m p   w i t h   t i m e   z o n e   d e f a u l t   t i m e z o n e ( ' u t c ' : : t e x t ,   n o w ( ) )   n o t   n u l l ,  
-     u p d a t e d _ a t   t i m e s t a m p   w i t h   t i m e   z o n e   d e f a u l t   t i m e z o n e ( ' u t c ' : : t e x t ,   n o w ( ) )   n o t   n u l l  
- ) ;  
-  
- C R E A T E   T R I G G E R   s e t _ t e n a n t _ c o m p l a i n t s   B E F O R E   I N S E R T   O N   p u b l i c . c o m p l a i n t s   F O R   E A C H   R O W   E X E C U T E   P R O C E D U R E   p u b l i c . s e t _ t e n a n t _ i d ( ) ;  
- a l t e r   t a b l e   p u b l i c . c o m p l a i n t s   e n a b l e   r o w   l e v e l   s e c u r i t y ;  
- c r e a t e   p o l i c y   " T e n a n t   i s o l a t i o n   f o r   c o m p l a i n t s "   o n   p u b l i c . c o m p l a i n t s   f o r   a l l   t o   a u t h e n t i c a t e d    
- u s i n g   ( s o c i e t y _ i d   =   p u b l i c . a u t h _ u s e r _ s o c i e t y _ i d ( )   O R   p u b l i c . a u t h _ u s e r _ r o l e ( )   =   ' s u p e r a d m i n ' ) ;  
-  
- - -   2 .   C r e a t e   M a i n t e n a n c e   B i l l s   T a b l e  
- c r e a t e   t a b l e   i f   n o t   e x i s t s   p u b l i c . m a i n t e n a n c e _ b i l l s   (  
-     i d   u u i d   p r i m a r y   k e y   d e f a u l t   g e n _ r a n d o m _ u u i d ( ) ,  
-     s o c i e t y _ i d   u u i d   r e f e r e n c e s   p u b l i c . s o c i e t i e s ( i d )   o n   d e l e t e   c a s c a d e   n o t   n u l l ,  
-     f l a t _ i d   u u i d   r e f e r e n c e s   p u b l i c . f l a t s ( i d )   o n   d e l e t e   c a s c a d e   n o t   n u l l ,  
-     a m o u n t _ e x p e c t e d   n u m e r i c   n o t   n u l l ,  
-     a m o u n t _ p a i d   n u m e r i c   d e f a u l t   0 ,  
-     d u e _ d a t e   d a t e   n o t   n u l l ,  
-     s t a t u s   t e x t   c h e c k   ( s t a t u s   i n   ( ' p e n d i n g ' ,   ' p a i d ' ,   ' o v e r d u e ' ) )   d e f a u l t   ' p e n d i n g ' ,  
-     b i l l i n g _ m o n t h   d a t e   n o t   n u l l ,  
-     c r e a t e d _ a t   t i m e s t a m p   w i t h   t i m e   z o n e   d e f a u l t   t i m e z o n e ( ' u t c ' : : t e x t ,   n o w ( ) )   n o t   n u l l  
- ) ;  
-  
- C R E A T E   T R I G G E R   s e t _ t e n a n t _ m a i n t e n a n c e   B E F O R E   I N S E R T   O N   p u b l i c . m a i n t e n a n c e _ b i l l s   F O R   E A C H   R O W   E X E C U T E   P R O C E D U R E   p u b l i c . s e t _ t e n a n t _ i d ( ) ;  
- a l t e r   t a b l e   p u b l i c . m a i n t e n a n c e _ b i l l s   e n a b l e   r o w   l e v e l   s e c u r i t y ;  
- c r e a t e   p o l i c y   " T e n a n t   i s o l a t i o n   f o r   m a i n t e n a n c e "   o n   p u b l i c . m a i n t e n a n c e _ b i l l s   f o r   a l l   t o   a u t h e n t i c a t e d    
- u s i n g   ( s o c i e t y _ i d   =   p u b l i c . a u t h _ u s e r _ s o c i e t y _ i d ( )   O R   p u b l i c . a u t h _ u s e r _ r o l e ( )   =   ' s u p e r a d m i n ' ) ;  
-  
- - -   3 .   U p d a t e   s c h e m a . s q l   w i t h   t h e s e   t a b l e s   a s   w e l l   ( w i l l   d o   t h i s   m a n u a l l y   o r   v i a   t o o l )  
- 
+-- 9. Create Visitors Table
+create table if not exists public.visitors (
+  id uuid primary key default gen_random_uuid(),
+  society_id uuid references public.societies(id) on delete cascade not null,
+  visitor_name text not null,
+  purpose text not null,
+  phone text,
+  vehicle_type text check (vehicle_type in ('None', 'Car', 'Two Wheeler')) default 'None',
+  person_count integer default 1,
+  status text check (status in ('pending', 'approved', 'denied', 'checked_out')) default 'pending',
+  exit_time timestamp with time zone,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+CREATE TRIGGER set_tenant_visitors BEFORE INSERT ON public.visitors FOR EACH ROW EXECUTE PROCEDURE public.set_tenant_id();
+
+alter table public.visitors enable row level security;
+
+create policy "Tenant isolation for visitors" on public.visitors for all to authenticated 
+using (
+  society_id = public.auth_user_society_id() OR
+  public.auth_user_role() = 'superadmin'
+);
+-- 1. Create Complaints Table
+create table if not exists public.complaints (
+  id uuid primary key default gen_random_uuid(),
+  society_id uuid references public.societies(id) on delete cascade not null,
+  resident_id uuid references public.profiles(id) on delete cascade not null,
+  title text not null,
+  description text not null,
+  status text check (status in ('pending', 'in_progress', 'resolved', 'escalated')) default 'pending',
+  category text not null,
+  resolution_time_days numeric,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+CREATE TRIGGER set_tenant_complaints BEFORE INSERT ON public.complaints FOR EACH ROW EXECUTE PROCEDURE public.set_tenant_id();
+alter table public.complaints enable row level security;
+create policy "Tenant isolation for complaints" on public.complaints for all to authenticated 
+using (society_id = public.auth_user_society_id() OR public.auth_user_role() = 'superadmin');
+
+-- 2. Create Maintenance Bills Table
+create table if not exists public.maintenance_bills (
+  id uuid primary key default gen_random_uuid(),
+  society_id uuid references public.societies(id) on delete cascade not null,
+  flat_id uuid references public.flats(id) on delete cascade not null,
+  amount_expected numeric not null,
+  amount_paid numeric default 0,
+  due_date date not null,
+  status text check (status in ('pending', 'paid', 'overdue')) default 'pending',
+  billing_month date not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+CREATE TRIGGER set_tenant_maintenance BEFORE INSERT ON public.maintenance_bills FOR EACH ROW EXECUTE PROCEDURE public.set_tenant_id();
+alter table public.maintenance_bills enable row level security;
+create policy "Tenant isolation for maintenance" on public.maintenance_bills for all to authenticated 
+using (society_id = public.auth_user_society_id() OR public.auth_user_role() = 'superadmin');
+
+-- 3. Update schema.sql with these tables as well (will do this manually or via tool)
