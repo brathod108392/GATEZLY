@@ -286,8 +286,10 @@ export default function VisitorsPage() {
                   <option value="" disabled>Select purpose...</option>
                   <option value="Guest">Guest</option>
                   <option value="Delivery">Delivery</option>
-                  <option value="Service">Service/Repair</option>
-                  <option value="Event">Event Attendee</option>
+                  <option value="Cab">Cab</option>
+                  <option value="Domestic Help">Domestic Help</option>
+                  <option value="Service/Repair">Service/Repair</option>
+                  <option value="Event Attendee">Event Attendee</option>
                 </select>
               </div>
 
