@@ -153,11 +153,11 @@ export default function FlatsPage() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const StatCard = ({ title, value, icon: Icon, color, bg }: any) => (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col justify-center gap-2 h-32 relative overflow-hidden">
+    <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col justify-center items-center gap-2 h-32 relative overflow-hidden">
       <div className={`h-10 w-10 rounded-xl ${bg} flex items-center justify-center ${color}`}>
         <Icon className="h-5 w-5" />
       </div>
-      <div className="z-10">
+      <div className="z-10 text-center">
         <div className="text-2xl font-bold text-slate-900 leading-none">{value}</div>
         <div className="text-xs font-medium text-slate-500 mt-1.5">{title}</div>
       </div>
