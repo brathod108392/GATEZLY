@@ -13,7 +13,9 @@ interface Visitor {
   phone: string;
   status: string;
   vehicle_type?: string;
+  vehicle_number?: string;
   person_count?: number;
+  additional_visitors?: string[];
   created_at: string;
 }
 
@@ -26,7 +28,8 @@ export default function VisitorsPage() {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ visitor_name: "", purpose: "", phone: "", vehicle_type: "None", person_count: "1" });
+  const [formData, setFormData] = useState({ visitor_name: "", purpose: "", phone: "", vehicle_type: "None", person_count: "1", vehicle_number: "" });
+  const [additionalNames, setAdditionalNames] = useState<string[]>([]);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
 
@@ -64,6 +67,7 @@ export default function VisitorsPage() {
     setActionLoading(true);
     setActionError("");
 
+    const count = parseInt(formData.person_count, 10) || 1;
     const { error } = await supabase.from("visitors").insert([
       { 
         society_id: society.id, 
@@ -71,7 +75,9 @@ export default function VisitorsPage() {
         purpose: formData.purpose,
         phone: formData.phone,
         vehicle_type: formData.vehicle_type,
-        person_count: parseInt(formData.person_count, 10) || 1,
+        vehicle_number: formData.vehicle_type !== 'None' ? formData.vehicle_number.trim() : null,
+        person_count: count,
+        additional_visitors: count > 1 ? additionalNames.slice(0, count - 1).filter(n => n.trim()) : [],
         status: "approved"
       }
     ]);
@@ -80,7 +86,8 @@ export default function VisitorsPage() {
       setActionError(error.message);
     } else {
       setIsModalOpen(false);
-      setFormData({ visitor_name: "", purpose: "", phone: "", vehicle_type: "None", person_count: "1" });
+      setFormData({ visitor_name: "", purpose: "", phone: "", vehicle_type: "None", person_count: "1", vehicle_number: "" });
+      setAdditionalNames([]);
       fetchVisitors();
     }
     setActionLoading(false);
@@ -179,11 +186,16 @@ export default function VisitorsPage() {
                   <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-semibold text-slate-900 text-sm">{v.visitor_name || v.name}</div>
+                      {v.additional_visitors && v.additional_visitors.length > 0 && (
+                        <div className="text-xs text-slate-500 mt-1">
+                          +{v.additional_visitors.length} ({v.additional_visitors.join(', ')})
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-slate-700 font-medium">{v.purpose || "N/A"}</div>
                       <div className="text-xs text-slate-500 mt-0.5">
-                        {v.vehicle_type !== 'None' ? v.vehicle_type : 'No Vehicle'} · {v.person_count || 1} {v.person_count === 1 ? 'Person' : 'People'}
+                        {v.vehicle_type !== 'None' ? `${v.vehicle_type} ${v.vehicle_number ? `(${v.vehicle_number})` : ''}` : 'No Vehicle'} · {v.person_count || 1} {v.person_count === 1 ? 'Person' : 'People'}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
@@ -307,31 +319,66 @@ export default function VisitorsPage() {
                     type="number"
                     min="1"
                     value={formData.person_count}
-                    onChange={e => setFormData({...formData, person_count: e.target.value})}
+                    onChange={e => {
+                      const count = parseInt(e.target.value, 10) || 1;
+                      setFormData({...formData, person_count: e.target.value});
+                      if (count > 1) {
+                        setAdditionalNames(prev => {
+                          const newNames = [...prev];
+                          while (newNames.length < count - 1) newNames.push('');
+                          return newNames.slice(0, count - 1);
+                        });
+                      } else {
+                        setAdditionalNames([]);
+                      }
+                    }}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-700">Vehicle</label>
-                <div className="flex gap-2">
-                  {['None', 'Two Wheeler', 'Car'].map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setFormData({...formData, vehicle_type: v})}
-                      className={`flex-1 py-2 text-sm font-medium rounded-xl transition-all border ${
-                        formData.vehicle_type === v 
-                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700' 
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {v}
-                    </button>
-                  ))}
+              {additionalNames.map((name, idx) => (
+                <div key={`name-${idx}`} className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700">Additional Visitor {idx + 1} Name (Optional)</label>
+                  <input 
+                    type="text" 
+                    value={name}
+                    onChange={e => {
+                      const newNames = [...additionalNames];
+                      newNames[idx] = e.target.value;
+                      setAdditionalNames(newNames);
+                    }}
+                    placeholder="e.g. Jane Doe"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
+                  />
                 </div>
+              ))}
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">Vehicle Type</label>
+                <select
+                  value={formData.vehicle_type}
+                  onChange={e => setFormData({...formData, vehicle_type: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
+                >
+                  <option value="None">None</option>
+                  <option value="Two Wheeler">Two Wheeler</option>
+                  <option value="Car">Car</option>
+                </select>
               </div>
+
+              {formData.vehicle_type !== 'None' && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700">Vehicle Number</label>
+                  <input 
+                    type="text" 
+                    value={formData.vehicle_number}
+                    onChange={e => setFormData({...formData, vehicle_number: e.target.value.toUpperCase()})}
+                    placeholder="e.g. MH12AB1234"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm uppercase"
+                  />
+                </div>
+              )}
 
               <div className="pt-4 flex justify-end gap-3">
                 <button 
