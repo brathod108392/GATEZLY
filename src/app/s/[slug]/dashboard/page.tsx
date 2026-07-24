@@ -118,8 +118,8 @@ export default function DashboardOverviewPage({ params }: { params: { slug: stri
             <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-[0_4px_12px_rgba(79,70,229,0.3)]">
               {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
             </div>
-            <div className="flex flex-col justify-center">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+            <div className="flex flex-col justify-center items-center">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 text-center">
                 Role
               </div>
               <div className="inline-flex items-center">
