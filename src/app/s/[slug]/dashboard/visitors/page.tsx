@@ -24,7 +24,7 @@ export default function VisitorsPage() {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ visitor_name: "", purpose: "", phone: "" });
+  const [formData, setFormData] = useState({ visitor_name: "", purpose: "", phone: "", vehicle_type: "None", person_count: "1" });
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
 
@@ -68,6 +68,8 @@ export default function VisitorsPage() {
         visitor_name: formData.visitor_name,
         purpose: formData.purpose,
         phone: formData.phone,
+        vehicle_type: formData.vehicle_type,
+        person_count: parseInt(formData.person_count, 10) || 1,
         status: "approved"
       }
     ]);
@@ -76,7 +78,7 @@ export default function VisitorsPage() {
       setActionError(error.message);
     } else {
       setIsModalOpen(false);
-      setFormData({ visitor_name: "", purpose: "", phone: "" });
+      setFormData({ visitor_name: "", purpose: "", phone: "", vehicle_type: "None", person_count: "1" });
       fetchVisitors();
     }
     setActionLoading(false);
@@ -177,7 +179,10 @@ export default function VisitorsPage() {
                       <div className="font-semibold text-slate-900 text-sm">{v.visitor_name || v.name}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-slate-700">{v.purpose || "N/A"}</div>
+                      <div className="text-sm text-slate-700 font-medium">{v.purpose || "N/A"}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">
+                        {v.vehicle_type !== 'None' ? v.vehicle_type : 'No Vehicle'} · {v.person_count || 1} {v.person_count === 1 ? 'Person' : 'People'}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
                       {v.phone || "N/A"}
@@ -275,22 +280,55 @@ export default function VisitorsPage() {
                 />
               </div>
 
+              <div className="flex gap-4">
+                <div className="space-y-1.5 flex-1">
+                  <label className="text-sm font-semibold text-slate-700">Purpose of Visit</label>
+                  <select 
+                    value={formData.purpose}
+                    onChange={e => setFormData({...formData, purpose: e.target.value})}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
+                  >
+                    <option value="" disabled>Select purpose...</option>
+                    <option value="Guest">Guest</option>
+                    <option value="Delivery">Delivery</option>
+                    <option value="Cab">Cab</option>
+                    <option value="Domestic Help">Domestic Help</option>
+                    <option value="Service/Repair">Service/Repair</option>
+                    <option value="Event Attendee">Event Attendee</option>
+                  </select>
+                </div>
+                
+                <div className="space-y-1.5 w-1/3">
+                  <label className="text-sm font-semibold text-slate-700">Persons</label>
+                  <input 
+                    type="number"
+                    min="1"
+                    value={formData.person_count}
+                    onChange={e => setFormData({...formData, person_count: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-700">Purpose of Visit</label>
-                <select 
-                  value={formData.purpose}
-                  onChange={e => setFormData({...formData, purpose: e.target.value})}
-                  required
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
-                >
-                  <option value="" disabled>Select purpose...</option>
-                  <option value="Guest">Guest</option>
-                  <option value="Delivery">Delivery</option>
-                  <option value="Cab">Cab</option>
-                  <option value="Domestic Help">Domestic Help</option>
-                  <option value="Service/Repair">Service/Repair</option>
-                  <option value="Event Attendee">Event Attendee</option>
-                </select>
+                <label className="text-sm font-semibold text-slate-700">Vehicle</label>
+                <div className="flex gap-2">
+                  {['None', 'Two Wheeler', 'Car'].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setFormData({...formData, vehicle_type: v})}
+                      className={`flex-1 py-2 text-sm font-medium rounded-xl transition-all border ${
+                        formData.vehicle_type === v 
+                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700' 
+                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="pt-4 flex justify-end gap-3">

@@ -250,3 +250,27 @@ using (
   society_id = public.auth_user_society_id() OR
   public.auth_user_role() = 'superadmin'
 );
+- -   9 .   C r e a t e   V i s i t o r s   T a b l e  
+ c r e a t e   t a b l e   i f   n o t   e x i s t s   p u b l i c . v i s i t o r s   (  
+     i d   u u i d   p r i m a r y   k e y   d e f a u l t   g e n _ r a n d o m _ u u i d ( ) ,  
+     s o c i e t y _ i d   u u i d   r e f e r e n c e s   p u b l i c . s o c i e t i e s ( i d )   o n   d e l e t e   c a s c a d e   n o t   n u l l ,  
+     v i s i t o r _ n a m e   t e x t   n o t   n u l l ,  
+     p u r p o s e   t e x t   n o t   n u l l ,  
+     p h o n e   t e x t ,  
+     v e h i c l e _ t y p e   t e x t   c h e c k   ( v e h i c l e _ t y p e   i n   ( ' N o n e ' ,   ' C a r ' ,   ' T w o   W h e e l e r ' ) )   d e f a u l t   ' N o n e ' ,  
+     p e r s o n _ c o u n t   i n t e g e r   d e f a u l t   1 ,  
+     s t a t u s   t e x t   c h e c k   ( s t a t u s   i n   ( ' p e n d i n g ' ,   ' a p p r o v e d ' ,   ' d e n i e d ' ,   ' c h e c k e d _ o u t ' ) )   d e f a u l t   ' p e n d i n g ' ,  
+     e x i t _ t i m e   t i m e s t a m p   w i t h   t i m e   z o n e ,  
+     c r e a t e d _ a t   t i m e s t a m p   w i t h   t i m e   z o n e   d e f a u l t   t i m e z o n e ( ' u t c ' : : t e x t ,   n o w ( ) )   n o t   n u l l  
+ ) ;  
+  
+ C R E A T E   T R I G G E R   s e t _ t e n a n t _ v i s i t o r s   B E F O R E   I N S E R T   O N   p u b l i c . v i s i t o r s   F O R   E A C H   R O W   E X E C U T E   P R O C E D U R E   p u b l i c . s e t _ t e n a n t _ i d ( ) ;  
+  
+ a l t e r   t a b l e   p u b l i c . v i s i t o r s   e n a b l e   r o w   l e v e l   s e c u r i t y ;  
+  
+ c r e a t e   p o l i c y   " T e n a n t   i s o l a t i o n   f o r   v i s i t o r s "   o n   p u b l i c . v i s i t o r s   f o r   a l l   t o   a u t h e n t i c a t e d    
+ u s i n g   (  
+     s o c i e t y _ i d   =   p u b l i c . a u t h _ u s e r _ s o c i e t y _ i d ( )   O R  
+     p u b l i c . a u t h _ u s e r _ r o l e ( )   =   ' s u p e r a d m i n '  
+ ) ;  
+ 
