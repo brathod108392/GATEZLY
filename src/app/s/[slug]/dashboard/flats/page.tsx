@@ -243,9 +243,9 @@ export default function FlatsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-indigo-600"/> Flats & Towers
+            <Building2 className="h-6 w-6 text-indigo-600"/> Flats / Bungalows
           </h1>
-          <p className="text-slate-500 text-sm">Manage society layout, add towers, create flats, and assign residents.</p>
+          <p className="text-slate-500 text-sm">Manage society layout, add towers / bungalows, create flats, and assign residents.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button onClick={() => alert("CSV Import feature coming soon!")} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm font-medium text-sm">

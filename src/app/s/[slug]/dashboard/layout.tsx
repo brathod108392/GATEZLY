@@ -32,7 +32,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { name: "Users", href: "/dashboard/users", icon: Users },
-  { name: "Flats", href: "/dashboard/flats", icon: Building2 },
+  { name: "Flats / Bungalows", href: "/dashboard/flats", icon: Building2 },
   { name: "Visitors", href: "/dashboard/visitors", icon: UserCheck },
   { name: "Complaints", href: "/dashboard/complaints", icon: MessageSquareWarning },
   { name: "Maintenance", href: "/dashboard/maintenance", icon: Wrench },
