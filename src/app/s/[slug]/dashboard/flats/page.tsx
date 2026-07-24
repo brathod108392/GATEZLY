@@ -167,11 +167,16 @@ export default function FlatsPage() {
   // Filter Flats
   const filteredFlats = flats.filter(f => f.number.toLowerCase().includes(search.toLowerCase()));
 
-  // Group by Tower
-  const groupedFlats = towers.map(tower => ({
-    ...tower,
-    flats: filteredFlats.filter(f => f.tower_id === tower.id)
-  })).filter(g => g.flats.length > 0);
+  // Group by Tower and sort alphanumerically
+  const groupedFlats = towers
+    .map(tower => ({
+      ...tower,
+      flats: filteredFlats
+        .filter(f => f.tower_id === tower.id)
+        .sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true, sensitivity: 'base' }))
+    }))
+    .filter(g => g.flats.length > 0)
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
 
   const openDrawer = (flat: Flat) => {
     setSelectedFlat(flat);
