@@ -403,11 +403,21 @@ export default function FlatsPage() {
                             onClick={() => openDrawer(flat)}
                             className={`bg-white rounded-2xl border ${isOccupied ? 'border-slate-200 hover:border-indigo-300 hover:shadow-md' : 'border-dashed border-slate-300 hover:border-slate-400 hover:bg-slate-50'} p-5 cursor-pointer transition-all flex flex-col group relative`}
                           >
-                             <div className="flex justify-between items-start mb-4">
+                             <div className="flex justify-between items-start mb-4 relative z-10">
                                <h3 className="text-lg font-extrabold text-slate-900">Flat {flat.number}</h3>
-                               {status === 'OWNER' && <span className="text-[10px] font-bold tracking-wider text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">OWNER</span>}
-                               {status === 'TENANT' && <span className="text-[10px] font-bold tracking-wider text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100">TENANT</span>}
-                               {status === 'VACANT' && <span className="text-[10px] font-bold tracking-wider text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">VACANT</span>}
+                               <div className="flex items-center gap-1">
+                                 <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center bg-white/80 rounded-md">
+                                    {role === 'superadmin' && (
+                                      <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmTarget({ type: 'flat', id: flat.id, name: flat.number }); }} className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors" title="Delete Flat (Superadmin Only)">
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    )}
+                                    <MoreVertical className="h-5 w-5 text-slate-400" />
+                                 </div>
+                                 {status === 'OWNER' && <span className="text-[10px] font-bold tracking-wider text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">OWNER</span>}
+                                 {status === 'TENANT' && <span className="text-[10px] font-bold tracking-wider text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100">TENANT</span>}
+                                 {status === 'VACANT' && <span className="text-[10px] font-bold tracking-wider text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">VACANT</span>}
+                               </div>
                              </div>
 
                              {isOccupied ? (
@@ -451,14 +461,6 @@ export default function FlatsPage() {
                                   <button className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors">Assign Resident</button>
                                </div>
                              )}
-                             <div className="absolute top-4 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
-                                {role === 'superadmin' && (
-                                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmTarget({ type: 'flat', id: flat.id, name: flat.number }); }} className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors" title="Delete Flat (Superadmin Only)">
-                                    <Trash2 className="h-4 w-4" />
-                                  </button>
-                                )}
-                                <MoreVertical className="h-5 w-5 text-slate-400" />
-                             </div>
                           </div>
                         );
                      })}
