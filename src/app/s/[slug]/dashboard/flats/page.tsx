@@ -65,6 +65,15 @@ export default function FlatsPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
+  // Modals & Action States
+  const [isTowerModalOpen, setIsTowerModalOpen] = useState(false);
+  const [isFlatModalOpen, setIsFlatModalOpen] = useState(false);
+  const [towerName, setTowerName] = useState("");
+  const [towerType, setTowerType] = useState("tower");
+  const [flatData, setFlatData] = useState({ tower_id: "", number: "", floor: "", property_type: "flat" });
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState("");
+
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -194,6 +203,52 @@ export default function FlatsPage() {
     setActiveTab("overview");
   };
 
+  const handleAddTower = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!society?.id) return;
+    setActionLoading(true);
+    setActionError("");
+    try {
+      const { error } = await supabase.from("towers").insert([{
+        society_id: society.id,
+        name: towerName,
+        structure_type: towerType
+      }]);
+      if (error) throw error;
+      setTowerName("");
+      setIsTowerModalOpen(false);
+      fetchData();
+    } catch (error) {
+      setActionError((error as Error).message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAddFlat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!society?.id) return;
+    setActionLoading(true);
+    setActionError("");
+    try {
+      const { error } = await supabase.from("flats").insert([{
+        society_id: society.id,
+        tower_id: flatData.tower_id,
+        number: flatData.number,
+        floor: parseInt(flatData.floor) || null,
+        property_type: flatData.property_type
+      }]);
+      if (error) throw error;
+      setFlatData({ tower_id: "", number: "", floor: "", property_type: "flat" });
+      setIsFlatModalOpen(false);
+      fetchData();
+    } catch (error) {
+      setActionError((error as Error).message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full"></div></div>;
   }
@@ -209,19 +264,19 @@ export default function FlatsPage() {
           <p className="text-slate-500 text-sm">Manage society layout, add towers, create flats, and assign residents.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm font-medium text-sm">
+          <button onClick={() => alert("CSV Import feature coming soon!")} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm font-medium text-sm">
             <Download className="h-4 w-4" /> Import CSV
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm font-medium text-sm">
+          <button onClick={() => alert("CSV Export feature coming soon!")} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm font-medium text-sm">
             <Upload className="h-4 w-4" /> Export
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm font-medium text-sm">
+          <button onClick={() => alert("Bulk Actions feature coming soon!")} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm font-medium text-sm">
             <Layers className="h-4 w-4" /> Bulk Actions <ChevronDown className="h-3 w-3 ml-1"/>
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl hover:bg-indigo-100 transition-colors shadow-sm font-semibold text-sm border border-indigo-200/50">
+          <button onClick={() => setIsTowerModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl hover:bg-indigo-100 transition-colors shadow-sm font-semibold text-sm border border-indigo-200/50">
             <Plus className="h-4 w-4" /> Add Tower
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-600/20 font-medium text-sm">
+          <button onClick={() => setIsFlatModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-600/20 font-medium text-sm">
             <Plus className="h-4 w-4" /> Add Flat
           </button>
         </div>
@@ -250,11 +305,11 @@ export default function FlatsPage() {
          </div>
          <div className="flex flex-wrap items-center gap-3 overflow-x-auto pb-1 md:pb-0">
            {['Tower: All', 'Floor: All', 'Status: All', 'Ownership: All', 'Maintenance: All'].map((f, i) => (
-             <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 cursor-pointer hover:bg-slate-100 whitespace-nowrap">
+             <div onClick={() => alert("Filtering logic coming soon!")} key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 cursor-pointer hover:bg-slate-100 whitespace-nowrap">
                {f} <ChevronDown className="h-3 w-3 text-slate-400" />
              </div>
            ))}
-           <span className="text-xs font-semibold text-rose-500 cursor-pointer hover:text-rose-600 px-2">Clear</span>
+           <span onClick={() => alert("Filters cleared!")} className="text-xs font-semibold text-rose-500 cursor-pointer hover:text-rose-600 px-2">Clear</span>
            
            <div className="h-6 w-px bg-slate-200 mx-1 hidden md:block"></div>
            
@@ -262,7 +317,7 @@ export default function FlatsPage() {
              <button className="px-3 py-1.5 bg-white text-indigo-600 shadow-sm rounded-md text-xs font-bold flex items-center gap-1.5">
                <Building2 className="h-3.5 w-3.5"/> Card View
              </button>
-             <button className="px-3 py-1.5 text-slate-500 hover:text-slate-700 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors">
+             <button onClick={() => alert("Table View coming soon!")} className="px-3 py-1.5 text-slate-500 hover:text-slate-700 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors">
                <Filter className="h-3.5 w-3.5"/> Table View
              </button>
            </div>
@@ -570,6 +625,90 @@ export default function FlatsPage() {
            )}
         </div>
       </div>
+
+      {/* Add Tower Modal */}
+      {isTowerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h2 className="text-xl font-bold text-slate-800">Add New Tower/Block</h2>
+              <button onClick={() => setIsTowerModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleAddTower} className="p-6 space-y-4">
+              {actionError && <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg">{actionError}</div>}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Name / Identifier</label>
+                <input required type="text" value={towerName} onChange={e => setTowerName(e.target.value)} placeholder="e.g. Tower A, Block B" className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Structure Type</label>
+                <select value={towerType} onChange={e => setTowerType(e.target.value)} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                  <option value="tower">Tower / Apartment Block</option>
+                  <option value="row_house">Row Houses</option>
+                  <option value="bungalow">Bungalows / Villas</option>
+                </select>
+              </div>
+              <div className="pt-4 flex gap-3">
+                <button type="button" onClick={() => setIsTowerModalOpen(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-50">Cancel</button>
+                <button type="submit" disabled={actionLoading} className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-70">
+                  {actionLoading ? "Adding..." : "Add Tower"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Flat Modal */}
+      {isFlatModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h2 className="text-xl font-bold text-slate-800">Add New Flat/Unit</h2>
+              <button onClick={() => setIsFlatModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleAddFlat} className="p-6 space-y-4">
+              {actionError && <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg">{actionError}</div>}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Select Tower/Block</label>
+                <select required value={flatData.tower_id} onChange={e => setFlatData({...flatData, tower_id: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                  <option value="">-- Select Tower --</option>
+                  {towers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Flat/Unit Number</label>
+                <input required type="text" value={flatData.number} onChange={e => setFlatData({...flatData, number: e.target.value})} placeholder="e.g. 101, A-101" className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Floor (Optional)</label>
+                  <input type="number" value={flatData.floor} onChange={e => setFlatData({...flatData, floor: e.target.value})} placeholder="e.g. 1" className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Property Type</label>
+                  <select value={flatData.property_type} onChange={e => setFlatData({...flatData, property_type: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                    <option value="flat">Flat / Apartment</option>
+                    <option value="villa">Villa</option>
+                    <option value="penthouse">Penthouse</option>
+                    <option value="shop">Shop / Commercial</option>
+                  </select>
+                </div>
+              </div>
+              <div className="pt-4 flex gap-3">
+                <button type="button" onClick={() => setIsFlatModalOpen(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-50">Cancel</button>
+                <button type="submit" disabled={actionLoading || towers.length === 0} className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-70">
+                  {actionLoading ? "Adding..." : "Add Flat"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
