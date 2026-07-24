@@ -114,16 +114,16 @@ export default function DashboardOverviewPage({ params }: { params: { slug: stri
             </p>
           </div>
 
-          <div className="flex items-center gap-4 bg-white/60 backdrop-blur-md border border-slate-200/50 p-4 rounded-2xl shadow-sm">
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-semibold text-lg shadow-sm">
-              {profile?.full_name?.charAt(0) || "U"}
+          <div className="flex items-center gap-4 bg-white/80 backdrop-blur-xl border border-white/60 p-3.5 pr-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all">
+            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-[0_4px_12px_rgba(79,70,229,0.3)]">
+              {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
             </div>
-            <div>
-              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-0.5">
+            <div className="flex flex-col justify-center">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
                 Role
               </div>
-              <div className="text-sm font-medium text-slate-700 flex items-center space-x-2">
-                <span className="px-2 py-0.5 bg-slate-100 rounded-md text-xs border border-slate-200">
+              <div className="inline-flex items-center">
+                <span className="px-2.5 py-1 bg-slate-100/80 rounded-md text-xs font-semibold text-slate-700 border border-slate-200/60 shadow-sm">
                   {formatRole(profile?.role)}
                 </span>
               </div>
