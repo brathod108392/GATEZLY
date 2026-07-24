@@ -90,6 +90,13 @@ export default function ProtectedDashboardLayout({
           return;
         }
 
+        if (profile?.role === 'resident' || profile?.role === 'guard') {
+          await supabase.auth.signOut();
+          setAuthenticated(false);
+          router.push("/login?error=unauthorized");
+          return;
+        }
+
         let soc = null;
 
         if (profile?.role === 'superadmin') {

@@ -135,6 +135,14 @@ export default function LoginPage() {
 
         if (profile) {
           await supabase.from("profiles").update({ updated_at: now }).eq("id", data.user.id);
+
+          if (profile.role === 'resident' || profile.role === 'guard') {
+            await supabase.auth.signOut();
+            setMessage({ type: "error", text: "Please use the Gatezly Mobile App to access your account. The web portal is restricted to Administrators." });
+            setLoading(false);
+            return;
+          }
+
           setMessage({ type: "success", text: "Authenticated successfully! Redirecting..." });
           
           setTimeout(async () => {
