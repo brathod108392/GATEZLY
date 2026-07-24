@@ -22,11 +22,8 @@ import {
   UserCircle,
   FileText,
   History,
-  ArrowUpRight,
-  ArrowDownRight,
   Filter
 } from "lucide-react";
-import { AreaChart, Area, ResponsiveContainer } from "recharts";
 
 // -- Types --
 interface Tower { id: string; name: string; }
@@ -48,9 +45,6 @@ interface Flat {
   family?: FamilyMember[];
 }
 
-const MOCK_SPARKLINE_UP = [{ value: 10 }, { value: 15 }, { value: 20 }, { value: 25 }, { value: 35 }, { value: 45 }, { value: 50 }];
-const MOCK_SPARKLINE_DOWN = [{ value: 50 }, { value: 45 }, { value: 48 }, { value: 30 }, { value: 25 }, { value: 20 }, { value: 15 }];
-
 export default function FlatsPage() {
   const { society } = useSociety();
   const [loading, setLoading] = useState(true);
@@ -58,7 +52,7 @@ export default function FlatsPage() {
   // Data States
   const [towers, setTowers] = useState<Tower[]>([]);
   const [flats, setFlats] = useState<Flat[]>([]);
-  
+
   // UI States
   const [search, setSearch] = useState("");
   const [selectedFlat, setSelectedFlat] = useState<Flat | null>(null);
@@ -157,33 +151,14 @@ export default function FlatsPage() {
   const formatCurrency = (val: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const StatCard = ({ title, value, icon: Icon, trend, trendUp, color, bg, sparkline }: any) => (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col justify-between h-36 relative overflow-hidden">
-      <div className="flex items-start justify-between z-10">
-        <div className={`h-10 w-10 rounded-xl ${bg} flex items-center justify-center ${color}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="h-12 w-24">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={sparkline}>
-              <Area type="monotone" dataKey="value" stroke={trendUp ? "#10b981" : "#f97316"} fill={trendUp ? "#ecfdf5" : "#fff7ed"} strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+  const StatCard = ({ title, value, icon: Icon, color, bg }: any) => (
+    <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-32 relative overflow-hidden">
+      <div className={`h-10 w-10 rounded-xl ${bg} flex items-center justify-center ${color} mb-3`}>
+        <Icon className="h-5 w-5" />
       </div>
-      <div className="z-10 mt-2">
+      <div className="z-10 mt-auto">
         <div className="text-2xl font-bold text-slate-900">{value}</div>
-        <div className="flex items-center justify-between mt-1">
-          <div className="text-xs font-medium text-slate-500">{title}</div>
-          {trend && (
-             <div className="flex flex-col items-end">
-               <span className={`flex items-center text-xs font-bold ${trendUp ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  {trendUp ? <ArrowUpRight className="h-3 w-3 mr-0.5"/> : <ArrowDownRight className="h-3 w-3 mr-0.5"/>} 
-                  {trend}
-               </span>
-             </div>
-          )}
-        </div>
+        <div className="text-xs font-medium text-slate-500 mt-1">{title}</div>
       </div>
     </div>
   );
@@ -284,11 +259,11 @@ export default function FlatsPage() {
 
       {/* Top Metrics Row - 5 Cards (Removed Total Towers) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard title="Total Flats/Bungalows" value={totalFlats} icon={Home} color="text-blue-600" bg="bg-blue-50" sparkline={MOCK_SPARKLINE_UP} />
-        <StatCard title="Occupied Flats" value={occupiedFlats} icon={Users} trend="12 this month" trendUp={true} color="text-emerald-600" bg="bg-emerald-50" sparkline={MOCK_SPARKLINE_UP} />
-        <StatCard title="Vacant Flats" value={vacantFlats} icon={Key} trend="4 this month" trendUp={false} color="text-orange-600" bg="bg-orange-50" sparkline={MOCK_SPARKLINE_DOWN} />
-        <StatCard title="Maintenance Due" value={formatCurrency(pendingDue)} icon={IndianRupee} trend="6% this month" trendUp={false} color="text-rose-600" bg="bg-rose-50" sparkline={MOCK_SPARKLINE_DOWN} />
-        <StatCard title="Collection %" value={`${collectionPercent}%`} icon={PieChart} trend="4% this month" trendUp={true} color="text-emerald-600" bg="bg-emerald-50" sparkline={MOCK_SPARKLINE_UP} />
+        <StatCard title="Total Flats/Bungalows" value={totalFlats} icon={Home} color="text-blue-600" bg="bg-blue-50" />
+        <StatCard title="Occupied Flats" value={occupiedFlats} icon={Users} color="text-emerald-600" bg="bg-emerald-50" />
+        <StatCard title="Vacant Flats" value={vacantFlats} icon={Key} color="text-orange-600" bg="bg-orange-50" />
+        <StatCard title="Maintenance Due" value={formatCurrency(pendingDue)} icon={IndianRupee} color="text-rose-600" bg="bg-rose-50" />
+        <StatCard title="Collection %" value={`${collectionPercent}%`} icon={PieChart} color="text-emerald-600" bg="bg-emerald-50" />
       </div>
 
       {/* Filter Bar */}
