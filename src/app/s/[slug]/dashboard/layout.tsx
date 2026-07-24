@@ -469,7 +469,7 @@ export default function ProtectedDashboardLayout({
         {/* MAIN BODY CONTENT */}
         <main className="flex-1 p-6 sm:p-8 bg-slate-50 overflow-x-hidden">
           <div className="mx-auto max-w-7xl animate-in fade-in duration-500 slide-in-from-bottom-2">
-            <SocietyProvider society={society}>
+            <SocietyProvider society={society} role={userRole}>
               {children}
             </SocietyProvider>
           </div>

@@ -4,6 +4,7 @@ import React, { createContext, useContext } from "react";
 
 interface SocietyContextType {
   society: Record<string, unknown>;
+  role?: string;
 }
 
 const SocietyContext = createContext<SocietyContextType | undefined>(undefined);
@@ -11,12 +12,14 @@ const SocietyContext = createContext<SocietyContextType | undefined>(undefined);
 export function SocietyProvider({
   children,
   society,
+  role,
 }: {
   children: React.ReactNode;
   society: Record<string, unknown>;
+  role?: string;
 }) {
   return (
-    <SocietyContext.Provider value={{ society }}>
+    <SocietyContext.Provider value={{ society, role }}>
       {children}
     </SocietyContext.Provider>
   );

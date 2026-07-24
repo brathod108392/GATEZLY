@@ -22,7 +22,9 @@ import {
   UserCircle,
   FileText,
   History,
-  Filter
+  Filter,
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
 
 // -- Types --
@@ -46,7 +48,7 @@ interface Flat {
 }
 
 export default function FlatsPage() {
-  const { society } = useSociety();
+  const { society, role } = useSociety();
   const [loading, setLoading] = useState(true);
   
   // Data States
@@ -68,6 +70,10 @@ export default function FlatsPage() {
   const [flatData, setFlatData] = useState({ tower_id: "", number: "", floor: "", property_type: "flat" });
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
+  
+  // Delete States
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{ type: 'tower' | 'flat', id: string, name: string } | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -233,6 +239,28 @@ export default function FlatsPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteConfirmTarget || deleteConfirmText !== deleteConfirmTarget.name) return;
+    setActionLoading(true);
+    setActionError("");
+    try {
+      if (deleteConfirmTarget.type === 'tower') {
+        const { error } = await supabase.from('towers').delete().eq('id', deleteConfirmTarget.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('flats').delete().eq('id', deleteConfirmTarget.id);
+        if (error) throw error;
+      }
+      setDeleteConfirmTarget(null);
+      setDeleteConfirmText("");
+      fetchData();
+    } catch (error) {
+      setActionError((error as Error).message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full"></div></div>;
   }
@@ -325,7 +353,14 @@ export default function FlatsPage() {
                       <Building2 className="h-6 w-6" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-slate-900">{group.name}</h2>
+                      <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                        {group.name}
+                        {role === 'superadmin' && (
+                          <button onClick={() => setDeleteConfirmTarget({ type: 'tower', id: group.id, name: group.name })} className="text-rose-400 hover:text-rose-600 hover:bg-rose-50 p-1.5 rounded-lg transition-colors ml-2" title="Delete Tower (Superadmin Only)">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </h2>
                       <div className="flex items-center gap-3 mt-1">
                         <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2.5 py-0.5 rounded-full">{occPercent}% Occupied</span>
                         <span className="text-xs text-slate-500 font-medium">{gTotal} Flats</span>
@@ -416,7 +451,12 @@ export default function FlatsPage() {
                                   <button className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors">Assign Resident</button>
                                </div>
                              )}
-                             <div className="absolute top-4 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <div className="absolute top-4 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
+                                {role === 'superadmin' && (
+                                  <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmTarget({ type: 'flat', id: flat.id, name: flat.number }); }} className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors" title="Delete Flat (Superadmin Only)">
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                )}
                                 <MoreVertical className="h-5 w-5 text-slate-400" />
                              </div>
                           </div>
@@ -457,7 +497,14 @@ export default function FlatsPage() {
                                   {status === 'VACANT' && <span className="text-[10px] font-bold tracking-wider text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">VACANT</span>}
                                 </td>
                                 <td className="px-4 py-3 text-right font-bold">
-                                  {flatMaintDue > 0 ? <span className="text-rose-600">₹{flatMaintDue}</span> : <span className="text-emerald-600">Paid</span>}
+                                  <div className="flex items-center justify-end gap-3">
+                                    {flatMaintDue > 0 ? <span className="text-rose-600">₹{flatMaintDue}</span> : <span className="text-emerald-600">Paid</span>}
+                                    {role === 'superadmin' && (
+                                      <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmTarget({ type: 'flat', id: flat.id, name: flat.number }); }} className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors" title="Delete Flat (Superadmin Only)">
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             );
@@ -736,6 +783,61 @@ export default function FlatsPage() {
           </div>
         </div>
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {deleteConfirmTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => !actionLoading && setDeleteConfirmTarget(null)} />
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-5 border-b border-slate-100 bg-rose-50/50 flex items-center gap-3 text-rose-600">
+              <AlertTriangle className="h-5 w-5" />
+              <h3 className="text-lg font-bold">Delete {deleteConfirmTarget.type === 'tower' ? 'Tower / Bungalow' : 'Flat'}</h3>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="p-4 bg-rose-50 rounded-xl border border-rose-100 text-rose-800 text-sm font-medium">
+                You are about to permanently delete the {deleteConfirmTarget.type} <strong>{deleteConfirmTarget.name}</strong>. 
+                This action is extremely destructive and will cascade delete all associated residents, vehicles, and maintenance bills.
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-bold text-slate-700">Type &quot;{deleteConfirmTarget.name}&quot; to confirm</label>
+                <input 
+                  type="text" 
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder={deleteConfirmTarget.name}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all text-sm"
+                  autoFocus
+                />
+              </div>
+
+              {actionError && (
+                <div className="p-3 bg-red-50 text-red-600 text-xs font-bold rounded-lg">{actionError}</div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+              <button 
+                onClick={() => { setDeleteConfirmTarget(null); setDeleteConfirmText(""); setActionError(""); }}
+                className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-xl transition-colors disabled:opacity-50"
+                disabled={actionLoading}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleDelete}
+                disabled={actionLoading || deleteConfirmText !== deleteConfirmTarget.name}
+                className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-rose-600 rounded-xl hover:bg-rose-700 disabled:opacity-50 transition-colors shadow-sm shadow-rose-600/20"
+              >
+                {actionLoading ? <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : <Trash2 className="h-4 w-4" />}
+                Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

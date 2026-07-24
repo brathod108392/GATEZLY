@@ -227,17 +227,29 @@ alter table public.flat_residents enable row level security;
 alter table public.notices enable row level security;
 
 -- Tenant Isolation Policies (Super Admins bypass this)
-create policy "Tenant isolation for towers" on public.towers for all to authenticated 
-using (
-  society_id = public.auth_user_society_id() OR
-  public.auth_user_role() = 'superadmin'
-);
+create policy "Tenant isolation for towers (select)" on public.towers for select to authenticated 
+using (society_id = public.auth_user_society_id() OR public.auth_user_role() = 'superadmin');
 
-create policy "Tenant isolation for flats" on public.flats for all to authenticated 
-using (
-  society_id = public.auth_user_society_id() OR
-  public.auth_user_role() = 'superadmin'
-);
+create policy "Tenant isolation for towers (insert)" on public.towers for insert to authenticated 
+with check (society_id = public.auth_user_society_id() OR public.auth_user_role() = 'superadmin');
+
+create policy "Tenant isolation for towers (update)" on public.towers for update to authenticated 
+using (society_id = public.auth_user_society_id() OR public.auth_user_role() = 'superadmin');
+
+create policy "Superadmin only can delete towers" on public.towers for delete to authenticated 
+using (public.auth_user_role() = 'superadmin');
+
+create policy "Tenant isolation for flats (select)" on public.flats for select to authenticated 
+using (society_id = public.auth_user_society_id() OR public.auth_user_role() = 'superadmin');
+
+create policy "Tenant isolation for flats (insert)" on public.flats for insert to authenticated 
+with check (society_id = public.auth_user_society_id() OR public.auth_user_role() = 'superadmin');
+
+create policy "Tenant isolation for flats (update)" on public.flats for update to authenticated 
+using (society_id = public.auth_user_society_id() OR public.auth_user_role() = 'superadmin');
+
+create policy "Superadmin only can delete flats" on public.flats for delete to authenticated 
+using (public.auth_user_role() = 'superadmin');
 
 create policy "Tenant isolation for flat_residents" on public.flat_residents for all to authenticated 
 using (
