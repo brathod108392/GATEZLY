@@ -26,6 +26,7 @@ export default function NoticesPage() {
   const [filter, setFilter] = useState("all");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
   const [formData, setFormData] = useState({ title: "", body: "", category: "General", is_emergency: false, pinned: false });
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -149,7 +150,11 @@ export default function NoticesPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredNotices.map((n) => (
-                <div key={n.id} className={`rounded-2xl p-6 border ${n.is_emergency ? 'bg-rose-50/50 border-rose-200' : 'bg-white border-slate-200'} shadow-sm flex flex-col h-full relative group`}>
+                <div 
+                  key={n.id} 
+                  onClick={() => setSelectedNotice(n)}
+                  className={`rounded-2xl p-6 border ${n.is_emergency ? 'bg-rose-50/50 border-rose-200 hover:border-rose-300' : 'bg-white border-slate-200 hover:border-slate-300'} shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col h-full relative group`}
+                >
                   {n.pinned && (
                     <div className="absolute top-4 right-4 text-indigo-500">
                       <Pin className="h-5 w-5 fill-indigo-500" />
@@ -176,7 +181,10 @@ export default function NoticesPage() {
                       {new Date(n.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     </div>
                     <button 
-                      onClick={() => handleTogglePin(n.id, n.pinned)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTogglePin(n.id, n.pinned);
+                      }}
                       className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold text-indigo-600 hover:text-indigo-800"
                     >
                       {n.pinned ? 'Unpin' : 'Pin to Top'}
@@ -286,6 +294,63 @@ export default function NoticesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Read Notice Modal */}
+      {selectedNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" onClick={() => setSelectedNotice(null)}>
+          <div 
+            className={`bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 border ${selectedNotice.is_emergency ? 'border-rose-200' : 'border-slate-200/50'}`}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className={`flex items-start justify-between p-6 border-b ${selectedNotice.is_emergency ? 'bg-rose-50 border-rose-100' : 'bg-slate-50/50 border-slate-100'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${selectedNotice.is_emergency ? 'bg-rose-100 text-rose-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                  {selectedNotice.is_emergency ? <AlertTriangle className="h-6 w-6" /> : <Megaphone className="h-6 w-6" />}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">{selectedNotice.title}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${selectedNotice.is_emergency ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                      {selectedNotice.category}
+                    </span>
+                    <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {new Date(selectedNotice.created_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedNotice(null)}
+                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-8">
+              <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                {selectedNotice.body}
+              </p>
+              
+              {selectedNotice.profiles?.full_name && (
+                <div className="mt-8 pt-4 border-t border-slate-100 flex items-center gap-2 text-sm text-slate-500">
+                  <span className="font-medium">Sent by:</span> {selectedNotice.profiles.full_name}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+              <button 
+                onClick={() => setSelectedNotice(null)}
+                className={`px-6 py-2.5 text-sm font-bold text-white rounded-xl shadow-sm transition-all ${selectedNotice.is_emergency ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20'}`}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
