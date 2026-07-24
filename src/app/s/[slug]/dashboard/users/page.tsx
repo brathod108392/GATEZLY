@@ -189,7 +189,7 @@ export default function UsersPage() {
     setSelectedReassignFlatId("");
     setIsEditModalOpen(true);
 
-    if (resident.is_active === false) {
+    if (!resident.is_active || !resident.flat_residents || resident.flat_residents.length === 0) {
       // Fetch available flats for reassignment
       const { data, error } = await supabase
         .from("flats")
@@ -317,6 +317,7 @@ export default function UsersPage() {
       const { error: assignError } = await supabase
         .from("flat_residents")
         .insert({
+          society_id: society.id,
           flat_id: selectedReassignFlatId,
           resident_id: selectedResident.id,
           is_owner: selectedReassignIsOwner,
