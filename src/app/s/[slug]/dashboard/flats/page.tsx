@@ -167,16 +167,19 @@ export default function FlatsPage() {
   // Filter Flats
   const filteredFlats = flats.filter(f => f.number.toLowerCase().includes(search.toLowerCase()));
 
+  // Robust Alphanumeric sort by zero-padding numbers
+  const padNumbers = (str: string) => str.replace(/\d+/g, n => n.padStart(10, '0'));
+
   // Group by Tower and sort alphanumerically
   const groupedFlats = towers
     .map(tower => ({
       ...tower,
       flats: filteredFlats
         .filter(f => f.tower_id === tower.id)
-        .sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true, sensitivity: 'base' }))
+        .sort((a, b) => padNumbers(a.number).localeCompare(padNumbers(b.number)))
     }))
     .filter(g => g.flats.length > 0)
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+    .sort((a, b) => padNumbers(a.name).localeCompare(padNumbers(b.name)));
 
   const openDrawer = (flat: Flat) => {
     setSelectedFlat(flat);
