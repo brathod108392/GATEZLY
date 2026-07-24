@@ -311,3 +311,38 @@ create policy "Tenant isolation for maintenance" on public.maintenance_bills for
 using (society_id = public.auth_user_society_id() OR public.auth_user_role() = 'superadmin');
 
 -- 3. Update schema.sql with these tables as well (will do this manually or via tool)
+
+-- 3. Create Vehicles Table
+create table if not exists public.vehicles (
+  id uuid primary key default gen_random_uuid(),
+  society_id uuid references public.societies(id) on delete cascade not null,
+  flat_id uuid references public.flats(id) on delete cascade not null,
+  resident_id uuid references public.profiles(id) on delete set null,
+  vehicle_number text not null,
+  vehicle_type text check (vehicle_type in ('Car', 'Two Wheeler', 'Other')) default 'Car',
+  model_name text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+CREATE TRIGGER set_tenant_vehicles BEFORE INSERT ON public.vehicles FOR EACH ROW EXECUTE PROCEDURE public.set_tenant_id();
+alter table public.vehicles enable row level security;
+create policy "Tenant isolation for vehicles" on public.vehicles for all to authenticated 
+using (society_id = public.auth_user_society_id() OR public.auth_user_role() = 'superadmin');
+
+-- 4. Create Family Members Table
+create table if not exists public.family_members (
+  id uuid primary key default gen_random_uuid(),
+  society_id uuid references public.societies(id) on delete cascade not null,
+  flat_id uuid references public.flats(id) on delete cascade not null,
+  primary_resident_id uuid references public.profiles(id) on delete cascade not null,
+  full_name text not null,
+  relation text not null,
+  age integer,
+  phone text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+CREATE TRIGGER set_tenant_family_members BEFORE INSERT ON public.family_members FOR EACH ROW EXECUTE PROCEDURE public.set_tenant_id();
+alter table public.family_members enable row level security;
+create policy "Tenant isolation for family_members" on public.family_members for all to authenticated 
+using (society_id = public.auth_user_society_id() OR public.auth_user_role() = 'superadmin');
