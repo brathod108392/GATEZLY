@@ -239,15 +239,27 @@ export default function ReportsPage({ params }: { params: { slug: string } }) {
           <p className="text-slate-500 text-sm">Generate insights, audit logs, visitor trends, and financial reports.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
+          <button 
+            onClick={() => alert("Date picker functionality will be integrated in the upcoming analytics release.")}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors"
+          >
             <CalendarDays className="h-4 w-4 text-slate-600" />
             <span className="text-sm font-semibold text-slate-700">This Month (1 - 31 May)</span>
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-600/20 font-medium text-sm">
+          </button>
+          <button 
+            onClick={() => {
+              alert("Preparing PDF Export...");
+              setTimeout(() => window.print(), 500);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-600/20 font-medium text-sm"
+          >
             <Download className="h-4 w-4" />
             Export
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm font-medium text-sm">
+          <button 
+            onClick={() => alert("Report Scheduling engine is currently in development.")}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm font-medium text-sm"
+          >
             <CalendarDays className="h-4 w-4" />
             Schedule Report
           </button>
