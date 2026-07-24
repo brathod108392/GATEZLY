@@ -55,6 +55,7 @@ export default function FlatsPage() {
 
   // UI States
   const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [selectedFlat, setSelectedFlat] = useState<Flat | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
@@ -152,13 +153,13 @@ export default function FlatsPage() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const StatCard = ({ title, value, icon: Icon, color, bg }: any) => (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-32 relative overflow-hidden">
-      <div className={`h-10 w-10 rounded-xl ${bg} flex items-center justify-center ${color} mb-3`}>
+    <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col justify-center gap-2 h-32 relative overflow-hidden">
+      <div className={`h-10 w-10 rounded-xl ${bg} flex items-center justify-center ${color}`}>
         <Icon className="h-5 w-5" />
       </div>
-      <div className="z-10 mt-auto">
-        <div className="text-2xl font-bold text-slate-900">{value}</div>
-        <div className="text-xs font-medium text-slate-500 mt-1">{title}</div>
+      <div className="z-10">
+        <div className="text-2xl font-bold text-slate-900 leading-none">{value}</div>
+        <div className="text-xs font-medium text-slate-500 mt-1.5">{title}</div>
       </div>
     </div>
   );
@@ -289,10 +290,10 @@ export default function FlatsPage() {
            <div className="h-6 w-px bg-slate-200 mx-1 hidden md:block"></div>
            
            <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200/50">
-             <button className="px-3 py-1.5 bg-white text-indigo-600 shadow-sm rounded-md text-xs font-bold flex items-center gap-1.5">
+             <button onClick={() => setViewMode("card")} className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-colors ${viewMode === 'card' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                <Building2 className="h-3.5 w-3.5"/> Card View
              </button>
-             <button onClick={() => alert("Table View coming soon!")} className="px-3 py-1.5 text-slate-500 hover:text-slate-700 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors">
+             <button onClick={() => setViewMode("table")} className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-colors ${viewMode === 'table' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                <Filter className="h-3.5 w-3.5"/> Table View
              </button>
            </div>
@@ -336,85 +337,128 @@ export default function FlatsPage() {
                   </div>
                </div>
 
-               {/* Flat Cards Grid */}
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                 {group.flats.map((flat) => {
-                    const residents = flat.residents || [];
-                    const primary = residents[0];
-                    const isOccupied = residents.length > 0;
-                    const status = isOccupied ? (primary.is_owner ? 'OWNER' : 'TENANT') : 'VACANT';
-                    const vehCount = flat.vehicles?.length || 0;
-                    const famCount = flat.family?.length || 0;
-                    
-                    let flatMaintDue = 0;
-                    flat.maintenance?.forEach(m => {
-                       if (m.status !== 'paid') {
-                         flatMaintDue += (Number(m.amount_expected) - Number(m.amount_paid));
-                       }
-                    });
+                 {viewMode === 'card' ? (
+                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                     {group.flats.map((flat) => {
+                        const residents = flat.residents || [];
+                        const primary = residents[0];
+                        const isOccupied = residents.length > 0;
+                        const status = isOccupied ? (primary.is_owner ? 'OWNER' : 'TENANT') : 'VACANT';
+                        const vehCount = flat.vehicles?.length || 0;
+                        const famCount = flat.family?.length || 0;
+                        
+                        let flatMaintDue = 0;
+                        flat.maintenance?.forEach(m => {
+                           if (m.status !== 'paid') {
+                             flatMaintDue += (Number(m.amount_expected) - Number(m.amount_paid));
+                           }
+                        });
 
-                    return (
-                      <div 
-                        key={flat.id} 
-                        onClick={() => openDrawer(flat)}
-                        className={`bg-white rounded-2xl border ${isOccupied ? 'border-slate-200 hover:border-indigo-300 hover:shadow-md' : 'border-dashed border-slate-300 hover:border-slate-400 hover:bg-slate-50'} p-5 cursor-pointer transition-all flex flex-col group relative`}
-                      >
-                         <div className="flex justify-between items-start mb-4">
-                           <h3 className="text-lg font-extrabold text-slate-900">Flat {flat.number}</h3>
-                           {status === 'OWNER' && <span className="text-[10px] font-bold tracking-wider text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">OWNER</span>}
-                           {status === 'TENANT' && <span className="text-[10px] font-bold tracking-wider text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100">TENANT</span>}
-                           {status === 'VACANT' && <span className="text-[10px] font-bold tracking-wider text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">VACANT</span>}
-                         </div>
+                        return (
+                          <div 
+                            key={flat.id} 
+                            onClick={() => openDrawer(flat)}
+                            className={`bg-white rounded-2xl border ${isOccupied ? 'border-slate-200 hover:border-indigo-300 hover:shadow-md' : 'border-dashed border-slate-300 hover:border-slate-400 hover:bg-slate-50'} p-5 cursor-pointer transition-all flex flex-col group relative`}
+                          >
+                             <div className="flex justify-between items-start mb-4">
+                               <h3 className="text-lg font-extrabold text-slate-900">Flat {flat.number}</h3>
+                               {status === 'OWNER' && <span className="text-[10px] font-bold tracking-wider text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">OWNER</span>}
+                               {status === 'TENANT' && <span className="text-[10px] font-bold tracking-wider text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100">TENANT</span>}
+                               {status === 'VACANT' && <span className="text-[10px] font-bold tracking-wider text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">VACANT</span>}
+                             </div>
 
-                         {isOccupied ? (
-                           <>
-                             <div className="flex items-center gap-3 mb-4">
-                               <div className="h-10 w-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0">
-                                 {primary.profiles.full_name.charAt(0).toUpperCase()}
-                               </div>
-                               <div className="truncate">
-                                 <div className="text-sm font-bold text-slate-900 truncate">{primary.profiles.full_name}</div>
-                                 <div className="text-xs text-slate-500 truncate">{primary.profiles.phone || primary.profiles.email}</div>
-                               </div>
-                             </div>
-                             <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 mb-4">
-                                <div className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5"/> {1 + famCount} Residents</div>
-                                <div className="flex items-center gap-1.5"><Car className="h-3.5 w-3.5"/> {vehCount} Vehicles</div>
-                             </div>
-                             <div className="mt-auto pt-4 border-t border-slate-100">
-                                {flatMaintDue > 0 ? (
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md flex items-center gap-1">
-                                      <IndianRupee className="h-3 w-3"/> Maintenance Due
-                                    </span>
-                                    <span className="text-sm font-extrabold text-rose-600">₹{flatMaintDue}</span>
+                             {isOccupied ? (
+                               <>
+                                 <div className="flex items-center gap-3 mb-4">
+                                   <div className="h-10 w-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0">
+                                     {primary.profiles.full_name.charAt(0).toUpperCase()}
+                                   </div>
+                                   <div className="truncate">
+                                     <div className="text-sm font-bold text-slate-900 truncate">{primary.profiles.full_name}</div>
+                                     <div className="text-xs text-slate-500 truncate">{primary.profiles.phone || primary.profiles.email}</div>
+                                   </div>
+                                 </div>
+                                 <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 mb-4">
+                                    <div className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5"/> {1 + famCount} Residents</div>
+                                    <div className="flex items-center gap-1.5"><Car className="h-3.5 w-3.5"/> {vehCount} Vehicles</div>
+                                 </div>
+                                 <div className="mt-auto pt-4 border-t border-slate-100">
+                                    {flatMaintDue > 0 ? (
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md flex items-center gap-1">
+                                          <IndianRupee className="h-3 w-3"/> Maintenance Due
+                                        </span>
+                                        <span className="text-sm font-extrabold text-rose-600">₹{flatMaintDue}</span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center">
+                                        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md flex items-center gap-1">
+                                          ✓ Maintenance Paid
+                                        </span>
+                                      </div>
+                                    )}
+                                 </div>
+                               </>
+                             ) : (
+                               <div className="flex flex-col items-center justify-center flex-1 py-4 text-center">
+                                  <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
+                                    <UserCircle className="h-6 w-6" />
                                   </div>
-                                ) : (
-                                  <div className="flex items-center">
-                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md flex items-center gap-1">
-                                      ✓ Maintenance Paid
-                                    </span>
-                                  </div>
-                                )}
+                                  <span className="text-xs font-semibold text-slate-500 mb-4">No resident assigned</span>
+                                  <button className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors">Assign Resident</button>
+                               </div>
+                             )}
+                             <div className="absolute top-4 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <MoreVertical className="h-5 w-5 text-slate-400" />
                              </div>
-                           </>
-                         ) : (
-                           <div className="flex flex-col items-center justify-center flex-1 py-4 text-center">
-                              <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
-                                <UserCircle className="h-6 w-6" />
-                              </div>
-                              <span className="text-xs font-semibold text-slate-500 mb-4">No resident assigned</span>
-                              <button className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors">Assign Resident</button>
-                           </div>
-                         )}
-                         <div className="absolute top-4 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <MoreVertical className="h-5 w-5 text-slate-400" />
-                         </div>
-                      </div>
-                    );
-                 })}
+                          </div>
+                        );
+                     })}
+                   </div>
+                 ) : (
+                   <div className="overflow-x-auto bg-white rounded-xl border border-slate-200">
+                     <table className="w-full text-left text-sm text-slate-600">
+                       <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px] tracking-wider">
+                         <tr>
+                           <th className="px-4 py-3">Flat / Unit</th>
+                           <th className="px-4 py-3">Resident</th>
+                           <th className="px-4 py-3">Contact</th>
+                           <th className="px-4 py-3 text-center">Occupancy</th>
+                           <th className="px-4 py-3 text-right">Maint. Due</th>
+                         </tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-100">
+                         {group.flats.map((flat) => {
+                            const residents = flat.residents || [];
+                            const primary = residents[0];
+                            const isOccupied = residents.length > 0;
+                            const status = isOccupied ? (primary.is_owner ? 'OWNER' : 'TENANT') : 'VACANT';
+                            let flatMaintDue = 0;
+                            flat.maintenance?.forEach(m => {
+                               if (m.status !== 'paid') flatMaintDue += (Number(m.amount_expected) - Number(m.amount_paid));
+                            });
+
+                            return (
+                              <tr key={flat.id} onClick={() => openDrawer(flat)} className="hover:bg-slate-50 cursor-pointer transition-colors">
+                                <td className="px-4 py-3 font-bold text-slate-900">{flat.number}</td>
+                                <td className="px-4 py-3 font-medium text-slate-800">{isOccupied ? primary.profiles.full_name : <span className="text-slate-400 italic">None</span>}</td>
+                                <td className="px-4 py-3 text-slate-500">{isOccupied ? primary.profiles.phone || primary.profiles.email : '-'}</td>
+                                <td className="px-4 py-3 text-center">
+                                  {status === 'OWNER' && <span className="text-[10px] font-bold tracking-wider text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">OWNER</span>}
+                                  {status === 'TENANT' && <span className="text-[10px] font-bold tracking-wider text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100">TENANT</span>}
+                                  {status === 'VACANT' && <span className="text-[10px] font-bold tracking-wider text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">VACANT</span>}
+                                </td>
+                                <td className="px-4 py-3 text-right font-bold">
+                                  {flatMaintDue > 0 ? <span className="text-rose-600">₹{flatMaintDue}</span> : <span className="text-emerald-600">Paid</span>}
+                                </td>
+                              </tr>
+                            );
+                         })}
+                       </tbody>
+                     </table>
+                   </div>
+                 )}
                </div>
-             </div>
            );
         })}
         {groupedFlats.length === 0 && (
