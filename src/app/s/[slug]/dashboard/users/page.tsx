@@ -46,7 +46,7 @@ export default function UsersPage() {
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get("search") || "";
   const [searchQuery, setSearchQuery] = useState(initialSearch);
-  const [roleFilter, setRoleFilter] = useState<"all" | "resident" | "guard" | "committee">("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | "resident" | "guard" | "committee" | "admin">("all");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -101,7 +101,7 @@ export default function UsersPage() {
         )
       `)
       .eq("society_id", society.id)
-      .in("role", ["resident", "guard", "committee"])
+      .in("role", ["resident", "guard", "committee", "admin"])
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -400,10 +400,10 @@ export default function UsersPage() {
         {/* Filters and Search */}
         <div className="p-4 border-b border-slate-200/80 bg-slate-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
           <div className="flex items-center p-1 bg-slate-200/50 rounded-xl space-x-1 border border-slate-200/50 overflow-x-auto max-w-full">
-            {['all', 'resident', 'committee', 'guard'].map(role => (
+            {['all', 'resident', 'committee', 'guard', 'admin'].map(role => (
               <button 
                 key={role}
-                onClick={() => setRoleFilter(role as "all" | "resident" | "guard" | "committee")} 
+                onClick={() => setRoleFilter(role as "all" | "resident" | "guard" | "committee" | "admin")} 
                 className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all capitalize whitespace-nowrap ${roleFilter === role ? "bg-white text-indigo-700 shadow-sm ring-1 ring-black/5" : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"}`}
               >
                 {role === 'all' ? 'All Users' : role}
@@ -467,6 +467,7 @@ export default function UsersPage() {
                           <div className="flex items-center space-x-1 mt-0.5">
                             {resident.role === 'committee' && <ShieldCheck className="h-3 w-3 text-indigo-500" />}
                             {resident.role === 'guard' && <Shield className="h-3 w-3 text-slate-500" />}
+                            {resident.role === 'admin' && <ShieldCheck className="h-3 w-3 text-emerald-600" />}
                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{resident.role}</span>
                           </div>
                         </div>
@@ -591,6 +592,7 @@ export default function UsersPage() {
                   <option value="resident">Resident</option>
                   <option value="committee">Committee Member</option>
                   <option value="guard">Security Guard</option>
+                  <option value="admin">Admin</option>
                 </select>
               </div>
 
@@ -688,6 +690,7 @@ export default function UsersPage() {
                   <option value="resident">Resident</option>
                   <option value="committee">Committee Member</option>
                   <option value="guard">Security Guard</option>
+                  <option value="admin">Admin</option>
                 </select>
               </div>
 
