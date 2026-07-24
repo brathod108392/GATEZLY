@@ -54,7 +54,6 @@ export default function ProtectedDashboardLayout({
   const [authenticated, setAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userEmail, setUserEmail] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("");
   const [globalSearchQuery, setGlobalSearchQuery] = useState("");
@@ -169,7 +168,6 @@ export default function ProtectedDashboardLayout({
 
         setSociety(soc);
         setAuthenticated(true);
-        setUserEmail(session.user.email || "");
         setUserName(profile?.full_name || session.user.email?.split('@')[0] || "User");
         setUserRole(profile?.role || "resident");
       } catch (error) {

@@ -28,7 +28,6 @@ export default function SuperAdminLayout({
 
   const [authenticated, setAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [userEmail, setUserEmail] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [banner, setBanner] = useState<{ active: boolean; text: string } | null>(null);
@@ -57,7 +56,6 @@ export default function SuperAdminLayout({
         }
 
         setAuthenticated(true);
-        setUserEmail(session.user.email || "");
         setUserName(profile?.full_name || session.user.email?.split('@')[0] || "Super Admin");
 
         // Fetch banner
