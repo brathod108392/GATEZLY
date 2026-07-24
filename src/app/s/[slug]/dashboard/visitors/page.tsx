@@ -12,6 +12,8 @@ interface Visitor {
   purpose: string;
   phone: string;
   status: string;
+  vehicle_type?: string;
+  person_count?: number;
   created_at: string;
 }
 
