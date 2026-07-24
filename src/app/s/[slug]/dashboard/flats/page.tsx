@@ -115,7 +115,7 @@ export default function FlatsPage() {
   };
 
   const fetchAvailableResidents = async () => {
-    const { data } = await supabase.from("profiles").select("id, full_name, email, role").eq("society_id", society.id).in("role", ["resident", "committee", "guard"]);
+    const { data } = await supabase.from("profiles").select("id, full_name, email, role").eq("society_id", society.id).in("role", ["admin", "resident", "committee", "guard"]);
     setAvailableResidents(data || []);
   };
 

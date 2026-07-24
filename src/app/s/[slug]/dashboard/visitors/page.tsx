@@ -23,6 +23,11 @@ export default function VisitorsPage() {
   const [filter, setFilter] = useState("all");
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ visitor_name: "", purpose: "", phone: "" });
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState("");
+
   useEffect(() => {
     fetchVisitors();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -52,6 +57,31 @@ export default function VisitorsPage() {
     setActionLoadingId(null);
   };
 
+  const handleCreatePass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionLoading(true);
+    setActionError("");
+
+    const { error } = await supabase.from("visitors").insert([
+      { 
+        society_id: society.id, 
+        visitor_name: formData.visitor_name,
+        purpose: formData.purpose,
+        phone: formData.phone,
+        status: "approved"
+      }
+    ]);
+
+    if (error) {
+      setActionError(error.message);
+    } else {
+      setIsModalOpen(false);
+      setFormData({ visitor_name: "", purpose: "", phone: "" });
+      fetchVisitors();
+    }
+    setActionLoading(false);
+  };
+
   const filteredVisitors = visitors.filter((v) => {
     const nameMatch = (v.visitor_name || v.name || "").toLowerCase().includes(searchQuery.toLowerCase());
     const phoneMatch = (v.phone || "").includes(searchQuery);
@@ -74,7 +104,10 @@ export default function VisitorsPage() {
             Real-time visitor access logs, pre-approvals, and digital QR fast pass generation.
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-sm transition-all active:scale-95 cursor-pointer">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-sm transition-all active:scale-95 cursor-pointer"
+        >
           <QrCode className="h-4 w-4" />
           <span>Issue Fast Pass</span>
         </button>
@@ -194,6 +227,90 @@ export default function VisitorsPage() {
           </table>
         </div>
       </div>
+
+      {/* Issue Fast Pass Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-slate-200/50">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <QrCode className="h-5 w-5 text-indigo-600" /> Issue Fast Pass
+              </h3>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCreatePass} className="p-6 space-y-4">
+              {actionError && (
+                <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium">
+                  {actionError}
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">Visitor Name</label>
+                <input 
+                  type="text" 
+                  value={formData.visitor_name}
+                  onChange={e => setFormData({...formData, visitor_name: e.target.value})}
+                  required
+                  placeholder="e.g. John Doe"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">Phone Number</label>
+                <input 
+                  type="tel" 
+                  value={formData.phone}
+                  onChange={e => setFormData({...formData, phone: e.target.value})}
+                  required
+                  placeholder="e.g. 555-0198"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">Purpose of Visit</label>
+                <select 
+                  value={formData.purpose}
+                  onChange={e => setFormData({...formData, purpose: e.target.value})}
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
+                >
+                  <option value="" disabled>Select purpose...</option>
+                  <option value="Guest">Guest</option>
+                  <option value="Delivery">Delivery</option>
+                  <option value="Service">Service/Repair</option>
+                  <option value="Event">Event Attendee</option>
+                </select>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm shadow-indigo-600/20 disabled:opacity-70 flex items-center justify-center min-w-[140px]"
+                >
+                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Generate Pass"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
