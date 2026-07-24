@@ -55,6 +55,8 @@ export default function ProtectedDashboardLayout({
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>("");
   const [globalSearchQuery, setGlobalSearchQuery] = useState("");
   const [society, setSociety] = useState<{ id: string; name: string; slug: string; modules: Record<string, boolean> } | null>(null);
   const [banner, setBanner] = useState<{ active: boolean; text: string } | null>(null);
@@ -78,7 +80,7 @@ export default function ProtectedDashboardLayout({
 
         const { data: profile } = await supabase
           .from("profiles")
-          .select("is_active, society_id, role")
+          .select("is_active, society_id, role, full_name")
           .eq("id", session.user.id)
           .single();
 
@@ -168,6 +170,8 @@ export default function ProtectedDashboardLayout({
         setSociety(soc);
         setAuthenticated(true);
         setUserEmail(session.user.email || "");
+        setUserName(profile?.full_name || session.user.email?.split('@')[0] || "User");
+        setUserRole(profile?.role || "resident");
       } catch (error) {
         console.error("Auth verification error:", error);
         setAuthenticated(false);
@@ -299,14 +303,14 @@ export default function ProtectedDashboardLayout({
           <div className="flex items-center justify-between bg-slate-50 rounded-2xl p-3 border border-slate-100/50 hover:bg-slate-100/50 transition-colors">
             <div className="flex items-center space-x-3 truncate">
               <div className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shrink-0 shadow-sm">
-                {userEmail.charAt(0).toUpperCase()}
+                {userName.charAt(0).toUpperCase()}
               </div>
               <div className="truncate">
-                <div className="text-sm font-semibold text-slate-700 truncate">
-                  Admin
+                <div className="font-semibold text-slate-900 truncate">
+                  {userName}
                 </div>
-                <div className="text-xs text-slate-500 truncate">
-                  {userEmail}
+                <div className="text-xs text-slate-500 font-medium tracking-wide uppercase truncate mt-0.5">
+                  {userRole.replace(/_/g, ' ')}
                 </div>
               </div>
             </div>
@@ -449,9 +453,9 @@ export default function ProtectedDashboardLayout({
                   <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-blue-600 ring-2 ring-white" />
                 </button>
                 
-                <div className="text-sm font-medium text-slate-600">
-                  {userEmail}
-                </div>
+                <span className="text-sm font-medium text-slate-600 truncate max-w-[120px]">
+                  {userName}
+                </span>
               </div>
             </div>
           </div>

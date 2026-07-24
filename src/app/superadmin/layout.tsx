@@ -29,6 +29,7 @@ export default function SuperAdminLayout({
   const [authenticated, setAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [banner, setBanner] = useState<{ active: boolean; text: string } | null>(null);
 
@@ -44,7 +45,7 @@ export default function SuperAdminLayout({
 
         const { data: profile } = await supabase
           .from("profiles")
-          .select("is_active, role")
+          .select("is_active, role, full_name")
           .eq("id", session.user.id)
           .single();
 
@@ -57,6 +58,7 @@ export default function SuperAdminLayout({
 
         setAuthenticated(true);
         setUserEmail(session.user.email || "");
+        setUserName(profile?.full_name || session.user.email?.split('@')[0] || "Super Admin");
 
         // Fetch banner
         try {
@@ -234,8 +236,8 @@ export default function SuperAdminLayout({
         <div className="p-4 m-4 rounded-2xl bg-slate-50 border border-slate-200">
           <div className="flex items-center justify-between">
             <div className="truncate pr-3">
-              <div className="text-sm font-bold text-slate-900 truncate">Administrator</div>
-              <div className="text-xs text-slate-500 truncate">{userEmail}</div>
+              <div className="text-sm font-bold text-slate-900 truncate">{userName}</div>
+              <div className="text-xs text-slate-500 font-medium tracking-wide uppercase truncate mt-0.5">Super Admin</div>
             </div>
             <button 
               onClick={handleSignOut}
